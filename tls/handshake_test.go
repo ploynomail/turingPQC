@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/hex"
@@ -16,7 +15,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/ploynomail/turingPQC/pqc/falcon/falcon512"
 	"io"
 	"math/big"
 	"net"
@@ -29,6 +27,9 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ploynomail/turingPQC/pqc/falcon/falcon512"
+	"github.com/ploynomail/turingPQC/x509"
 )
 
 // TLS reference tests run a connection against a reference implementation
@@ -709,6 +710,7 @@ func TestGenFalcon512Cert(t *testing.T) {
 		NotBefore: time.Unix(1000, 0),
 		NotAfter:  time.Unix(100000, 0),
 
+		// SignatureAlgorithm: x509.PureFalcon512,
 		SignatureAlgorithm: x509.PureFalcon512,
 
 		SubjectKeyId: []byte{1, 2, 3, 4},
