@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"internal/profile"
 	"log"
 	"os"
 	"runtime"
@@ -20,6 +19,8 @@ import (
 	"runtime/trace"
 	"strings"
 	"time"
+
+	"github.com/ploynomail/turingPQC/internal/profile"
 )
 
 func main() {

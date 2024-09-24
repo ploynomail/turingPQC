@@ -7,9 +7,10 @@ package testtrace
 import (
 	"errors"
 	"fmt"
-	"internal/trace/v2"
 	"slices"
 	"strings"
+
+	"github.com/ploynomail/turingPQC/internal/trace/v2"
 )
 
 // Validator is a type used for validating a stream of trace.Events.

@@ -8,8 +8,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"internal/race"
-	"internal/testenv"
 	"io"
 	"os"
 	"os/exec"
@@ -17,6 +15,9 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/race"
+	"github.com/ploynomail/turingPQC/internal/testenv"
 )
 
 // tests holds some simple test cases, including some found by fuzzing.

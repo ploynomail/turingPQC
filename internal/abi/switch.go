@@ -34,7 +34,7 @@ func UseInterfaceSwitchCache(goarch string) bool {
 		return false
 	}
 	// We need an atomic load instruction to make the cache multithreaded-safe.
-	// (AtomicLoadPtr needs to be implemented in cmd/compile/internal/ssa/_gen/ARCH.rules.)
+	// (AtomicLoadPtr needs to be implemented in cmd/compile/github.com/ploynomail/turingPQC/internal/ssa/_gen/ARCH.rules.)
 	switch goarch {
 	case "amd64", "arm64", "loong64", "mips", "mipsle", "mips64", "mips64le", "ppc64", "ppc64le", "riscv64", "s390x":
 		return true

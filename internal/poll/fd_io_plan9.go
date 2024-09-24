@@ -5,10 +5,11 @@
 package poll
 
 import (
-	"internal/itoa"
 	"runtime"
 	"sync"
 	"syscall"
+
+	"github.com/ploynomail/turingPQC/internal/itoa"
 )
 
 // asyncIO implements asynchronous cancelable I/O.

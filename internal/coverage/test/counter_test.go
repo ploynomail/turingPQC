@@ -6,13 +6,14 @@ package test
 
 import (
 	"fmt"
-	"internal/coverage"
-	"internal/coverage/decodecounter"
-	"internal/coverage/encodecounter"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
+	"github.com/ploynomail/turingPQC/internal/coverage/decodecounter"
+	"github.com/ploynomail/turingPQC/internal/coverage/encodecounter"
 )
 
 type ctrVis struct {

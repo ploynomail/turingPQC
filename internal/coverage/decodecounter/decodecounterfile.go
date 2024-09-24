@@ -7,13 +7,14 @@ package decodecounter
 import (
 	"encoding/binary"
 	"fmt"
-	"internal/coverage"
-	"internal/coverage/slicereader"
-	"internal/coverage/stringtab"
 	"io"
 	"os"
 	"strconv"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
+	"github.com/ploynomail/turingPQC/internal/coverage/slicereader"
+	"github.com/ploynomail/turingPQC/internal/coverage/stringtab"
 )
 
 // This file contains helpers for reading counter data files created

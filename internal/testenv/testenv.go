@@ -201,7 +201,7 @@ func findGOROOT() (string, error) {
 		// binary was built with -trimpath, or perhaps because GOROOT_FINAL was set
 		// without GOROOT and the tree hasn't been moved there yet).
 		//
-		// Since this is internal/testenv, we can cheat and assume that the caller
+		// Since this is github.com/ploynomail/turingPQC/internal/testenv, we can cheat and assume that the caller
 		// is a test of some package in a subdirectory of GOROOT/src. ('go test'
 		// runs the test in the directory containing the packaged under test.) That
 		// means that if we start walking up the tree, we should eventually find

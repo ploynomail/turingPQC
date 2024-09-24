@@ -28,7 +28,6 @@ package traceviewer
 import (
 	"encoding/json"
 	"fmt"
-	"internal/trace"
 	"log"
 	"math"
 	"net/http"
@@ -36,6 +35,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ploynomail/turingPQC/internal/trace"
 )
 
 type MutatorUtilFunc func(trace.UtilFlags) ([][]trace.MutatorUtil, error)

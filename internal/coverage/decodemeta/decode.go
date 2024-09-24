@@ -11,11 +11,12 @@ package decodemeta
 import (
 	"encoding/binary"
 	"fmt"
-	"internal/coverage"
-	"internal/coverage/slicereader"
-	"internal/coverage/stringtab"
 	"io"
 	"os"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
+	"github.com/ploynomail/turingPQC/internal/coverage/slicereader"
+	"github.com/ploynomail/turingPQC/internal/coverage/stringtab"
 )
 
 // See comments in the encodecovmeta package for details on the format.

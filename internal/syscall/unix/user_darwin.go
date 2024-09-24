@@ -5,9 +5,10 @@
 package unix
 
 import (
-	"internal/abi"
 	"syscall"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/abi"
 )
 
 //go:cgo_import_dynamic libc_getgrouplist getgrouplist "/usr/lib/libSystem.B.dylib"

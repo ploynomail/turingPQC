@@ -85,7 +85,7 @@ var TestHookDidWritev = func(wrote int) {}
 // String is an internal string definition for methods/functions
 // that is not intended for use outside the standard libraries.
 //
-// Other packages in std that import internal/poll and have some
+// Other packages in std that import github.com/ploynomail/turingPQC/internal/poll and have some
 // exported APIs (now we've got some in net.rawConn) which are only used
 // internally and are not intended to be used outside the standard libraries,
 // Therefore, we make those APIs use internal types like poll.FD or poll.String

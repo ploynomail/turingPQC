@@ -7,13 +7,14 @@ package poll_test
 import (
 	"errors"
 	"fmt"
-	"internal/poll"
-	"internal/syscall/windows"
 	"os"
 	"sync"
 	"syscall"
 	"testing"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/poll"
+	"github.com/ploynomail/turingPQC/internal/syscall/windows"
 )
 
 type loggedFD struct {

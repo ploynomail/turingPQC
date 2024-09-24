@@ -5,9 +5,10 @@
 package poll_test
 
 import (
-	"internal/poll"
 	"reflect"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/poll"
 )
 
 func TestConsume(t *testing.T) {

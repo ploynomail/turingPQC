@@ -7,8 +7,9 @@
 package unix
 
 import (
-	"internal/abi"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/abi"
 )
 
 //go:cgo_import_dynamic libc_getentropy getentropy "/usr/lib/libSystem.B.dylib"

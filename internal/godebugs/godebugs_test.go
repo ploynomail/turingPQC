@@ -5,12 +5,13 @@
 package godebugs_test
 
 import (
-	"internal/godebugs"
-	"internal/testenv"
 	"os"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/godebugs"
+	"github.com/ploynomail/turingPQC/internal/testenv"
 )
 
 func TestAll(t *testing.T) {

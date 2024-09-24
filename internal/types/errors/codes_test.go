@@ -11,10 +11,11 @@ import (
 	"go/importer"
 	"go/parser"
 	"go/token"
-	"internal/testenv"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/testenv"
 
 	. "go/types"
 )

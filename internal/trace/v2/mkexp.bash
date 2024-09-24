@@ -8,7 +8,7 @@
 
 set -e
 if [ ! -f mkexp.bash ]; then
-	echo 'mkexp.bash must be run from $GOROOT/src/internal/trace/v2' 1>&2
+	echo 'mkexp.bash must be run from $GOROOT/src/github.com/ploynomail/turingPQC/internal/trace/v2' 1>&2
 	exit 1
 fi
 
@@ -30,10 +30,10 @@ rm $1/trace/mkexp.bash
 mv $1/trace/tools $1/trace/cmd
 
 # Make some packages internal.
-mv $1/trace/raw $1/trace/internal/raw
-mv $1/trace/event $1/trace/internal/event
-mv $1/trace/version $1/trace/internal/version
-mv $1/trace/testtrace $1/trace/internal/testtrace
+mv $1/trace/raw $1/trace/github.com/ploynomail/turingPQC/internal/raw
+mv $1/trace/event $1/trace/github.com/ploynomail/turingPQC/internal/event
+mv $1/trace/version $1/trace/github.com/ploynomail/turingPQC/internal/version
+mv $1/trace/testtrace $1/trace/github.com/ploynomail/turingPQC/internal/testtrace
 
 # Move the debug commands out of testdata.
 mv $1/trace/testdata/cmd $1/trace/cmd

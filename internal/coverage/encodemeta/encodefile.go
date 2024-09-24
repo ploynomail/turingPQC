@@ -9,11 +9,12 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
-	"internal/coverage"
-	"internal/coverage/stringtab"
 	"io"
 	"os"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
+	"github.com/ploynomail/turingPQC/internal/coverage/stringtab"
 )
 
 // This package contains APIs and helpers for writing out a meta-data

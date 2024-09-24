@@ -6,10 +6,11 @@ package cpu_test
 
 import (
 	"errors"
-	. "internal/cpu"
 	"os"
 	"regexp"
 	"testing"
+
+	. "github.com/ploynomail/turingPQC/internal/cpu"
 )
 
 func getFeatureList() ([]string, error) {

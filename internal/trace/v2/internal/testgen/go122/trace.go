@@ -12,12 +12,12 @@ import (
 	"regexp"
 	"strings"
 
-	"internal/trace/v2"
-	"internal/trace/v2/event"
-	"internal/trace/v2/event/go122"
-	"internal/trace/v2/raw"
-	"internal/trace/v2/version"
-	"internal/txtar"
+	"github.com/ploynomail/turingPQC/internal/trace/v2"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event/go122"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/raw"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/version"
+	"github.com/ploynomail/turingPQC/internal/txtar"
 )
 
 func Main(f func(*Trace)) {

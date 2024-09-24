@@ -5,9 +5,10 @@
 package testpty
 
 import (
-	"internal/syscall/unix"
 	"os"
 	"syscall"
+
+	"github.com/ploynomail/turingPQC/internal/syscall/unix"
 )
 
 func open() (pty *os.File, processTTY string, err error) {

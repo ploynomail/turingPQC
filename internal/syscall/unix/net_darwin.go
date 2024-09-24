@@ -5,9 +5,10 @@
 package unix
 
 import (
-	"internal/abi"
 	"syscall"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/abi"
 )
 
 const (

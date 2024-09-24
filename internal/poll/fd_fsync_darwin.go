@@ -5,8 +5,9 @@
 package poll
 
 import (
-	"internal/syscall/unix"
 	"syscall"
+
+	"github.com/ploynomail/turingPQC/internal/syscall/unix"
 )
 
 // Fsync invokes SYS_FCNTL with SYS_FULLFSYNC because

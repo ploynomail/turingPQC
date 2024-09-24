@@ -5,11 +5,12 @@
 package safefilepath_test
 
 import (
-	"internal/safefilepath"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/safefilepath"
 )
 
 type PathTest struct {

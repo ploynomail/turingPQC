@@ -5,13 +5,14 @@
 package testenv_test
 
 import (
-	"internal/platform"
-	"internal/testenv"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/platform"
+	"github.com/ploynomail/turingPQC/internal/testenv"
 )
 
 func TestGoToolLocation(t *testing.T) {
@@ -23,7 +24,7 @@ func TestGoToolLocation(t *testing.T) {
 	}
 
 	// Tests are defined to run within their package source directory,
-	// and this package's source directory is $GOROOT/src/internal/testenv.
+	// and this package's source directory is $GOROOT/src/github.com/ploynomail/turingPQC/internal/testenv.
 	// The 'go' command is installed at $GOROOT/bin/go, so if the environment
 	// is correct then testenv.GoTool() should be identical to ../../../bin/go.
 

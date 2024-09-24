@@ -7,9 +7,10 @@
 package execenv
 
 import (
-	"internal/syscall/windows"
 	"syscall"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/syscall/windows"
 )
 
 // Default will return the default environment

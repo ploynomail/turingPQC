@@ -6,9 +6,6 @@ package godebug_test
 
 import (
 	"fmt"
-	. "internal/godebug"
-	"internal/race"
-	"internal/testenv"
 	"os"
 	"os/exec"
 	"reflect"
@@ -16,6 +13,10 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	. "github.com/ploynomail/turingPQC/internal/godebug"
+	"github.com/ploynomail/turingPQC/internal/race"
+	"github.com/ploynomail/turingPQC/internal/testenv"
 )
 
 func TestGet(t *testing.T) {

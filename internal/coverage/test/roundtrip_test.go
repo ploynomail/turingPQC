@@ -6,14 +6,15 @@ package test
 
 import (
 	"fmt"
-	"internal/coverage"
-	"internal/coverage/decodemeta"
-	"internal/coverage/encodemeta"
-	"internal/coverage/slicewriter"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
+	"github.com/ploynomail/turingPQC/internal/coverage/decodemeta"
+	"github.com/ploynomail/turingPQC/internal/coverage/encodemeta"
+	"github.com/ploynomail/turingPQC/internal/coverage/slicewriter"
 )
 
 func cmpFuncDesc(want, got coverage.FuncDesc) string {

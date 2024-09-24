@@ -9,14 +9,15 @@ package traceviewer
 import (
 	"bufio"
 	"fmt"
-	"internal/profile"
-	"internal/trace"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"time"
+
+	"github.com/ploynomail/turingPQC/internal/profile"
+	"github.com/ploynomail/turingPQC/internal/trace"
 )
 
 type ProfileFunc func(r *http.Request) ([]ProfileRecord, error)

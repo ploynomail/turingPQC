@@ -14,10 +14,10 @@ import (
 	"strings"
 	"testing"
 
-	"internal/trace/v2"
-	"internal/trace/v2/raw"
-	"internal/trace/v2/testtrace"
-	"internal/trace/v2/version"
+	"github.com/ploynomail/turingPQC/internal/trace/v2"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/raw"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/testtrace"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/version"
 )
 
 var (

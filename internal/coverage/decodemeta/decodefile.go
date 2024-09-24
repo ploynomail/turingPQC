@@ -15,11 +15,12 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
-	"internal/coverage"
-	"internal/coverage/slicereader"
-	"internal/coverage/stringtab"
 	"io"
 	"os"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
+	"github.com/ploynomail/turingPQC/internal/coverage/slicereader"
+	"github.com/ploynomail/turingPQC/internal/coverage/stringtab"
 )
 
 // CoverageMetaFileReader provides state and methods for reading

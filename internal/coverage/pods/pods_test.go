@@ -7,12 +7,13 @@ package pods_test
 import (
 	"crypto/md5"
 	"fmt"
-	"internal/coverage"
-	"internal/coverage/pods"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
+	"github.com/ploynomail/turingPQC/internal/coverage/pods"
 )
 
 func TestPodCollection(t *testing.T) {

@@ -6,12 +6,13 @@ package pods
 
 import (
 	"fmt"
-	"internal/coverage"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
 )
 
 // Pod encapsulates a set of files emitted during the executions of a

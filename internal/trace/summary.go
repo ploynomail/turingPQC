@@ -5,9 +5,10 @@
 package trace
 
 import (
-	tracev2 "internal/trace/v2"
 	"sort"
 	"time"
+
+	tracev2 "github.com/ploynomail/turingPQC/internal/trace/v2"
 )
 
 // Summary is the analysis result produced by the summarizer.

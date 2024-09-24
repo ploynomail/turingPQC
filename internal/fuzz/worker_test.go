@@ -9,7 +9,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"internal/race"
 	"io"
 	"os"
 	"os/signal"
@@ -17,6 +16,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/ploynomail/turingPQC/internal/race"
 )
 
 var benchmarkWorkerFlag = flag.Bool("benchmarkworker", false, "")

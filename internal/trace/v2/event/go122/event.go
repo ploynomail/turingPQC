@@ -6,7 +6,8 @@ package go122
 
 import (
 	"fmt"
-	"internal/trace/v2/event"
+
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event"
 )
 
 const (

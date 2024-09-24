@@ -3,7 +3,7 @@
 package registry
 
 import (
-	"internal/syscall/windows/sysdll"
+	"github.com/ploynomail/turingPQC/internal/syscall/windows/sysdll"
 	"syscall"
 	"unsafe"
 )

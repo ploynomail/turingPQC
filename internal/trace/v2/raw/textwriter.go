@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"internal/trace/v2/version"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/version"
 )
 
 // TextWriter emits the text format of a trace.

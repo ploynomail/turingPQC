@@ -7,8 +7,9 @@
 package sysinfo
 
 import (
-	"internal/cpu"
 	"sync"
+
+	"github.com/ploynomail/turingPQC/internal/cpu"
 )
 
 var cpuInfo struct {
@@ -18,7 +19,7 @@ var cpuInfo struct {
 
 func CPUName() string {
 	cpuInfo.once.Do(func() {
-		// Try to get the information from internal/cpu.
+		// Try to get the information from github.com/ploynomail/turingPQC/internal/cpu.
 		if name := cpu.Name(); name != "" {
 			cpuInfo.name = name
 			return

@@ -9,10 +9,11 @@ import (
 	"debug/dwarf"
 	"encoding/binary"
 	"fmt"
-	"internal/saferio"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/ploynomail/turingPQC/internal/saferio"
 )
 
 // SectionHeader holds information about an XCOFF section header.

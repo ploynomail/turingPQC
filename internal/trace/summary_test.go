@@ -5,10 +5,11 @@
 package trace
 
 import (
-	tracev2 "internal/trace/v2"
-	"internal/trace/v2/testtrace"
 	"io"
 	"testing"
+
+	tracev2 "github.com/ploynomail/turingPQC/internal/trace/v2"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/testtrace"
 )
 
 func TestSummarizeGoroutinesTrace(t *testing.T) {

@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strings"
 
-	"internal/trace/v2/event/go122"
-	"internal/trace/v2/version"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event/go122"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/version"
 )
 
 // Reader reads a byte stream, validates it, and produces trace events.

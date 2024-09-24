@@ -5,11 +5,12 @@
 package reflectlite
 
 import (
-	"internal/abi"
-	"internal/goarch"
-	"internal/unsafeheader"
 	"runtime"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/abi"
+	"github.com/ploynomail/turingPQC/internal/goarch"
+	"github.com/ploynomail/turingPQC/internal/unsafeheader"
 )
 
 // Value is the reflection interface to a Go value.

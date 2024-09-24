@@ -5,8 +5,9 @@
 package abi
 
 import (
-	"internal/goarch"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/goarch"
 )
 
 // RegArgs is a struct that has space for each argument

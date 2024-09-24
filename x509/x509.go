@@ -1029,7 +1029,6 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		h.Write(signed)
 		signed = h.Sum(nil)
 	}
-
 	switch pub := publicKey.(type) {
 	case *rsa.PublicKey:
 		if pubKeyAlgo != RSA {
@@ -1923,13 +1922,10 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 	}
 
 	var signature []byte
-	//fmt.Println("key: ", key)
 	signature, err = key.Sign(rand, signed, signerOpts)
 	if err != nil {
-		//fmt.Println("err: ", err)
 		return nil, err
 	}
-
 	signedCert, err := asn1.Marshal(certificate{
 		nil,
 		c,

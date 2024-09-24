@@ -14,11 +14,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	"hash"
-	"internal/coverage"
-	"internal/coverage/stringtab"
-	"internal/coverage/uleb128"
 	"io"
 	"os"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
+	"github.com/ploynomail/turingPQC/internal/coverage/stringtab"
+	"github.com/ploynomail/turingPQC/internal/coverage/uleb128"
 )
 
 type CoverageMetaDataBuilder struct {

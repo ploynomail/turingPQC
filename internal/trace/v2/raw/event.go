@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"internal/trace/v2/event"
-	"internal/trace/v2/version"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/version"
 )
 
 // Event is a simple representation of a trace event.

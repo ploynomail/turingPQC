@@ -6,9 +6,10 @@ package diff
 
 import (
 	"bytes"
-	"internal/txtar"
 	"path/filepath"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/txtar"
 )
 
 func clean(text []byte) []byte {

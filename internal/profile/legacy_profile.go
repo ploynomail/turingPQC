@@ -11,11 +11,12 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"internal/lazyregexp"
 	"io"
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/ploynomail/turingPQC/internal/lazyregexp"
 )
 
 var (

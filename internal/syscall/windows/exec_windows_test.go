@@ -8,12 +8,13 @@ package windows_test
 
 import (
 	"fmt"
-	"internal/syscall/windows"
 	"os"
 	"os/exec"
 	"syscall"
 	"testing"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/syscall/windows"
 )
 
 func TestRunAtLowIntegrity(t *testing.T) {

@@ -5,9 +5,10 @@
 package reflectlite
 
 import (
-	"internal/goarch"
-	"internal/unsafeheader"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/goarch"
+	"github.com/ploynomail/turingPQC/internal/unsafeheader"
 )
 
 // Swapper returns a function that swaps the elements in the provided

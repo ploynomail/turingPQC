@@ -14,8 +14,8 @@ import (
 	"slices"
 	"strings"
 
-	"internal/trace/v2/event"
-	"internal/trace/v2/event/go122"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event/go122"
 )
 
 // generation contains all the trace data for a single

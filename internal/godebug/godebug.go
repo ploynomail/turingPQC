@@ -30,16 +30,17 @@
 package godebug
 
 // Note: Be careful about new imports here. Any package
-// that internal/godebug imports cannot itself import internal/godebug,
+// that github.com/ploynomail/turingPQC/internal/godebug imports cannot itself import github.com/ploynomail/turingPQC/internal/godebug,
 // meaning it cannot introduce a GODEBUG setting of its own.
 // We keep imports to the absolute bare minimum.
 import (
-	"internal/bisect"
-	"internal/godebugs"
 	"sync"
 	"sync/atomic"
 	"unsafe"
 	_ "unsafe" // go:linkname
+
+	"github.com/ploynomail/turingPQC/internal/bisect"
+	"github.com/ploynomail/turingPQC/internal/godebugs"
 )
 
 // A Setting is a single setting in the $GODEBUG environment variable.

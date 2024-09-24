@@ -14,9 +14,9 @@
 package main
 
 import (
-	"internal/trace/v2"
-	"internal/trace/v2/event/go122"
-	testgen "internal/trace/v2/internal/testgen/go122"
+	"github.com/ploynomail/turingPQC/internal/trace/v2"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event/go122"
+	testgen "github.com/ploynomail/turingPQC/internal/trace/v2/github.com/ploynomail/turingPQC/internal/testgen/go122"
 )
 
 func main() {

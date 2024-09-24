@@ -8,13 +8,14 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
-	"internal/coverage"
-	"internal/coverage/slicewriter"
-	"internal/coverage/stringtab"
-	"internal/coverage/uleb128"
 	"io"
 	"os"
 	"sort"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
+	"github.com/ploynomail/turingPQC/internal/coverage/slicewriter"
+	"github.com/ploynomail/turingPQC/internal/coverage/stringtab"
+	"github.com/ploynomail/turingPQC/internal/coverage/uleb128"
 )
 
 // This package contains APIs and helpers for encoding initial portions

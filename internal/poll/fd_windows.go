@@ -6,14 +6,15 @@ package poll
 
 import (
 	"errors"
-	"internal/race"
-	"internal/syscall/windows"
 	"io"
 	"sync"
 	"syscall"
 	"unicode/utf16"
 	"unicode/utf8"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/race"
+	"github.com/ploynomail/turingPQC/internal/syscall/windows"
 )
 
 var (

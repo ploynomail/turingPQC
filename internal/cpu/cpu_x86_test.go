@@ -7,9 +7,10 @@
 package cpu_test
 
 import (
-	. "internal/cpu"
-	"internal/godebug"
 	"testing"
+
+	. "github.com/ploynomail/turingPQC/internal/cpu"
+	"github.com/ploynomail/turingPQC/internal/godebug"
 )
 
 func TestX86ifAVX2hasAVX(t *testing.T) {

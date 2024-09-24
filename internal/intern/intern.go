@@ -11,10 +11,11 @@
 package intern
 
 import (
-	"internal/godebug"
 	"runtime"
 	"sync"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/godebug"
 )
 
 // A Value pointer is the handle to an underlying comparable value.

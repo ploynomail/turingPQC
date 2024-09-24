@@ -7,10 +7,11 @@
 package poll
 
 import (
-	"internal/syscall/unix"
 	"io"
 	"sync/atomic"
 	"syscall"
+
+	"github.com/ploynomail/turingPQC/internal/syscall/unix"
 )
 
 // FD is a file descriptor. The net and os packages use this type as a

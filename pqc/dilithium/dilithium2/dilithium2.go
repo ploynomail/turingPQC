@@ -1,15 +1,13 @@
 package dilithium2
 
 import (
+	"bytes"
 	"crypto"
 	"io"
 	"log"
 
 	"github.com/open-quantum-safe/liboqs-go/oqs"
 )
-
-var signer = oqs.Signature{}
-var verifier = oqs.Signature{}
 
 const (
 	sigName        = "Dilithium2"
@@ -29,8 +27,7 @@ type PrivateKey struct {
 }
 
 func GenerateKey() (*PrivateKey, error) {
-	// fmt.Println("----PQC秘钥对生成开始: ", sigName)
-
+	var signer = oqs.Signature{}
 	defer signer.Clean() // clean up even in case of panic
 
 	if err := signer.Init(sigName, nil); err != nil {
@@ -41,33 +38,30 @@ func GenerateKey() (*PrivateKey, error) {
 		return nil, err
 	}
 	sk := signer.ExportSecretKey()
+	privateKey := &PrivateKey{
+		PublicKey: PublicKey{
+			Pk: bytes.Clone(pk),
+		},
+		Sk: bytes.Clone(sk),
+	}
 
-	privateKey := new(PrivateKey)
-
-	privateKey.PublicKey.Pk = pk
-	privateKey.Sk = sk
-
-	// fmt.Println("----PQC秘钥对生成结束: ", sigName)
-	// fmt.Println("----PQC公钥: ", privateKey.Pk)
-	// fmt.Println("----PQC公钥长度: ", len(privateKey.Pk))
 	return privateKey, err
 }
 
-// func (priv *PrivateKey) Sign(random io.Reader, msg []byte, signer crypto.SignerOpts) ([]byte, error)
 func (priv *PrivateKey) SignPQC(msg []byte) (sig []byte, err error) {
-	// fmt.Println("----PQC签名开始: ", sigName)
-
-	//defer signer.Clean()
-
-	if err := signer.Init(sigName, priv.Sk); err != nil {
-		log.Fatal(err)
+	var signer = oqs.Signature{}
+	defer signer.Clean()
+	privKey := bytes.Clone(priv.Sk)
+	if err := signer.Init(sigName, privKey); err != nil {
+		return nil, err
 	}
 
 	sign, err := signer.Sign(msg)
-
-	// fmt.Println("----PQC签名结束: ", sigName)
-
-	return sign, err
+	if err != nil {
+		return nil, err
+	}
+	sig = append([]byte{}, sign...)
+	return sig, err
 }
 
 func (priv *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
@@ -88,22 +82,15 @@ func (pub *PublicKey) Equal(x crypto.PublicKey) bool {
 }
 
 func Verify(pubkey *PublicKey, msg, signature []byte) bool {
-	// fmt.Println("----PQC验签开始: ", sigName)
-
+	var verifier = oqs.Signature{}
 	defer verifier.Clean()
 
 	if err := verifier.Init(sigName, nil); err != nil {
 		log.Fatal(err)
-		//log.Info(err.Error())
 	}
-
 	isValid, err := verifier.Verify(msg, signature, pubkey.Pk)
 	if err != nil {
 		log.Fatal(err)
-		//log.Info(err.Error())
 	}
-
-	// fmt.Println("----PQC验签结束: ", sigName)
-
 	return isValid
 }

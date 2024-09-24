@@ -14,7 +14,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"internal/syscall/windows/registry"
+	"github.com/ploynomail/turingPQC/internal/syscall/windows/registry"
 )
 
 func randKeyName(prefix string) string {

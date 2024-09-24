@@ -9,15 +9,16 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"internal/trace/v2/raw"
-	"internal/trace/v2/version"
-	"internal/txtar"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+
+	"github.com/ploynomail/turingPQC/internal/trace/v2/raw"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/version"
+	"github.com/ploynomail/turingPQC/internal/txtar"
 )
 
 func main() {

@@ -5,11 +5,12 @@
 package bytealg
 
 import (
-	"internal/cpu"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/cpu"
 )
 
-// Offsets into internal/cpu records for use in assembly.
+// Offsets into github.com/ploynomail/turingPQC/internal/cpu records for use in assembly.
 const (
 	offsetX86HasSSE42  = unsafe.Offsetof(cpu.X86.HasSSE42)
 	offsetX86HasAVX2   = unsafe.Offsetof(cpu.X86.HasAVX2)

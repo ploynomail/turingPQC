@@ -5,12 +5,13 @@
 package poll_test
 
 import (
-	. "internal/poll"
 	"math/rand"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	. "github.com/ploynomail/turingPQC/internal/poll"
 )
 
 func TestMutexLock(t *testing.T) {

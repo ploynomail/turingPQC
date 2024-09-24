@@ -6,9 +6,10 @@ package stringtab
 
 import (
 	"fmt"
-	"internal/coverage/slicereader"
-	"internal/coverage/uleb128"
 	"io"
+
+	"github.com/ploynomail/turingPQC/internal/coverage/slicereader"
+	"github.com/ploynomail/turingPQC/internal/coverage/uleb128"
 )
 
 // This package implements string table writer and reader utilities,

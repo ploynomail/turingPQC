@@ -49,8 +49,9 @@
 package chacha8rand
 
 import (
-	"internal/goarch"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/goarch"
 )
 
 // setup sets up 4 ChaCha8 blocks in b32 with the counter and seed.

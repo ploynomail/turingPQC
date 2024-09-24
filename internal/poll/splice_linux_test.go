@@ -5,12 +5,13 @@
 package poll_test
 
 import (
-	"internal/poll"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/ploynomail/turingPQC/internal/poll"
 )
 
 var closeHook atomic.Value // func(fd int)

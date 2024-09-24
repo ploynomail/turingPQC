@@ -7,11 +7,12 @@ package traceviewer
 import (
 	"encoding/json"
 	"fmt"
-	"internal/trace"
-	"internal/trace/traceviewer/format"
 	"io"
 	"strconv"
 	"time"
+
+	"github.com/ploynomail/turingPQC/internal/trace"
+	"github.com/ploynomail/turingPQC/internal/trace/traceviewer/format"
 )
 
 type TraceConsumer struct {

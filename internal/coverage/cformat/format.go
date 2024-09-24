@@ -32,11 +32,12 @@ package cformat
 
 import (
 	"fmt"
-	"internal/coverage"
-	"internal/coverage/cmerge"
 	"io"
 	"sort"
 	"text/tabwriter"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
+	"github.com/ploynomail/turingPQC/internal/coverage/cmerge"
 )
 
 type Formatter struct {

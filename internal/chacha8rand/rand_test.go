@@ -8,9 +8,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	. "internal/chacha8rand"
 	"slices"
 	"testing"
+
+	. "github.com/ploynomail/turingPQC/internal/chacha8rand"
 )
 
 func TestOutput(t *testing.T) {

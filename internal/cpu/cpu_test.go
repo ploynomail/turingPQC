@@ -5,12 +5,13 @@
 package cpu_test
 
 import (
-	. "internal/cpu"
-	"internal/godebug"
-	"internal/testenv"
 	"os"
 	"os/exec"
 	"testing"
+
+	. "github.com/ploynomail/turingPQC/internal/cpu"
+	"github.com/ploynomail/turingPQC/internal/godebug"
+	"github.com/ploynomail/turingPQC/internal/testenv"
 )
 
 func MustHaveDebugOptionsSupport(t *testing.T) {

@@ -9,8 +9,9 @@ package cmerge
 
 import (
 	"fmt"
-	"internal/coverage"
 	"math"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
 )
 
 type ModeMergePolicy uint8

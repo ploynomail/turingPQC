@@ -6,11 +6,12 @@ package trace
 
 import (
 	"container/heap"
-	tracev2 "internal/trace/v2"
 	"math"
 	"sort"
 	"strings"
 	"time"
+
+	tracev2 "github.com/ploynomail/turingPQC/internal/trace/v2"
 )
 
 // MutatorUtil is a change in mutator utilization at a particular

@@ -13,7 +13,7 @@ import (
 // Be careful about accessing this type at build time, as the version
 // of this type in the compiler/linker may not have the same layout
 // as the version in the target binary, due to pointer width
-// differences and any experiments. Use cmd/compile/internal/rttype
+// differences and any experiments. Use cmd/compile/github.com/ploynomail/turingPQC/internal/rttype
 // or the functions in compiletype.go to access this type instead.
 // (TODO: this admonition applies to every type in this package.
 // Put it in some shared location?)
@@ -457,7 +457,7 @@ type MapType struct {
 }
 
 // Note: flag values must match those used in the TMAP case
-// in ../cmd/compile/internal/reflectdata/reflect.go:writeType.
+// in ../cmd/compile/github.com/ploynomail/turingPQC/internal/reflectdata/reflect.go:writeType.
 func (mt *MapType) IndirectKey() bool { // store ptr to key instead of key itself
 	return mt.Flags&1 != 0
 }
@@ -589,8 +589,8 @@ type StructType struct {
 // whether the pointed to type is exported.
 //
 // Note: this encoding must match here and in:
-//   cmd/compile/internal/reflectdata/reflect.go
-//   cmd/link/internal/ld/decodesym.go
+//   cmd/compile/github.com/ploynomail/turingPQC/internal/reflectdata/reflect.go
+//   cmd/link/github.com/ploynomail/turingPQC/internal/ld/decodesym.go
 
 type Name struct {
 	Bytes *byte

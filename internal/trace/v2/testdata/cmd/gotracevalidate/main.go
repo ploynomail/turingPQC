@@ -11,8 +11,8 @@ import (
 	"log"
 	"os"
 
-	"internal/trace/v2"
-	"internal/trace/v2/testtrace"
+	"github.com/ploynomail/turingPQC/internal/trace/v2"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/testtrace"
 )
 
 func init() {

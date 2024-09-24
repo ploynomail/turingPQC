@@ -3,8 +3,8 @@
 // license that can be found in the LICENSE file.
 
 // Package godebugs provides a table of known GODEBUG settings,
-// for use by a variety of other packages, including internal/godebug,
-// runtime, runtime/metrics, and cmd/go/internal/load.
+// for use by a variety of other packages, including github.com/ploynomail/turingPQC/internal/godebug,
+// runtime, runtime/metrics, and cmd/go/github.com/ploynomail/turingPQC/internal/load.
 package godebugs
 
 // An Info describes a single known GODEBUG setting.
@@ -13,7 +13,7 @@ type Info struct {
 	Package string // package that uses the setting ("runtime")
 	Changed int    // minor version when default changed, if any; 21 means Go 1.21
 	Old     string // value that restores behavior prior to Changed
-	Opaque  bool   // setting does not export information to runtime/metrics using [internal/godebug.Setting.IncNonDefault]
+	Opaque  bool   // setting does not export information to runtime/metrics using [github.com/ploynomail/turingPQC/internal/godebug.Setting.IncNonDefault]
 }
 
 // All is the table of known settings, sorted by Name.

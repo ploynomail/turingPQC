@@ -6,7 +6,6 @@ package fmtsort_test
 
 import (
 	"fmt"
-	"internal/fmtsort"
 	"math"
 	"reflect"
 	"runtime"
@@ -14,6 +13,8 @@ import (
 	"strings"
 	"testing"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/fmtsort"
 )
 
 var compareTests = [][]reflect.Value{

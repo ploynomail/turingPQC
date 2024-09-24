@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"io"
 
-	"internal/trace/v2/event"
-	"internal/trace/v2/version"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/version"
 )
 
 // Reader parses trace bytes with only very basic validation

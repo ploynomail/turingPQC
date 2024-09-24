@@ -12,8 +12,8 @@ import (
 	"strings"
 	"unicode"
 
-	"internal/trace/v2/event"
-	"internal/trace/v2/version"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/version"
 )
 
 // TextReader parses a text format trace with only very basic validation

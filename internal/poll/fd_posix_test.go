@@ -7,9 +7,10 @@
 package poll_test
 
 import (
-	. "internal/poll"
 	"io"
 	"testing"
+
+	. "github.com/ploynomail/turingPQC/internal/poll"
 )
 
 var eofErrorTests = []struct {

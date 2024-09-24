@@ -5,11 +5,12 @@
 package poll
 
 import (
-	"internal/syscall/unix"
 	"runtime"
 	"sync"
 	"syscall"
 	"unsafe"
+
+	"github.com/ploynomail/turingPQC/internal/syscall/unix"
 )
 
 const (

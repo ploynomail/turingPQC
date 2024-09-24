@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"io"
 
-	"internal/trace/v2/event"
-	"internal/trace/v2/event/go122"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event/go122"
 )
 
 // timestamp is an unprocessed timestamp.

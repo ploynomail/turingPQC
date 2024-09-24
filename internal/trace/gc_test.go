@@ -6,14 +6,15 @@ package trace
 
 import (
 	"bytes"
-	"internal/trace/v2"
-	tracev2 "internal/trace/v2"
-	"internal/trace/v2/testtrace"
 	"io"
 	"math"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/ploynomail/turingPQC/internal/trace/v2"
+	tracev2 "github.com/ploynomail/turingPQC/internal/trace/v2"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/testtrace"
 )
 
 // aeq returns true if x and y are equal up to 8 digits (1 part in 100

@@ -156,7 +156,7 @@ func BuildModeSupported(compiler, buildmode, goos, goarch string) bool {
 			default:
 				// Other targets do not support -shared,
 				// per ParseFlags in
-				// cmd/compile/internal/base/flag.go.
+				// cmd/compile/github.com/ploynomail/turingPQC/internal/base/flag.go.
 				// For c-archive the Go tool passes -shared,
 				// so that the result is suitable for inclusion
 				// in a PIE or shared library.

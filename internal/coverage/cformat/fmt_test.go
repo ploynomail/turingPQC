@@ -5,11 +5,12 @@
 package cformat_test
 
 import (
-	"internal/coverage"
-	"internal/coverage/cformat"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
+	"github.com/ploynomail/turingPQC/internal/coverage/cformat"
 )
 
 func TestBasics(t *testing.T) {

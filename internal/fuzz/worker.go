@@ -31,7 +31,7 @@ const (
 
 	// workerExitCode is used as an exit code by fuzz worker processes after an internal error.
 	// This distinguishes internal errors from uncontrolled panics and other crashes.
-	// Keep in sync with internal/fuzz.workerExitCode.
+	// Keep in sync with github.com/ploynomail/turingPQC/internal/fuzz.workerExitCode.
 	workerExitCode = 70
 
 	// workerSharedMemSize is the maximum size of the shared memory file used to

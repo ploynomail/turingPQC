@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"internal/trace/v2/event"
-	"internal/trace/v2/event/go122"
-	"internal/trace/v2/version"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/event/go122"
+	"github.com/ploynomail/turingPQC/internal/trace/v2/version"
 )
 
 // ordering emulates Go scheduler state for both validation and

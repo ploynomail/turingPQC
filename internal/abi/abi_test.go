@@ -5,11 +5,12 @@
 package abi_test
 
 import (
-	"internal/abi"
-	"internal/testenv"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/abi"
+	"github.com/ploynomail/turingPQC/internal/testenv"
 )
 
 func TestFuncPC(t *testing.T) {
@@ -43,7 +44,7 @@ func TestFuncPCCompileError(t *testing.T) {
 
 	// Write an importcfg file for the dependencies of the package.
 	importcfgfile := filepath.Join(tmpdir, "hello.importcfg")
-	testenv.WriteImportcfg(t, importcfgfile, nil, "internal/abi")
+	testenv.WriteImportcfg(t, importcfgfile, nil, "github.com/ploynomail/turingPQC/internal/abi")
 
 	// parse assembly code for symabi.
 	cmd := testenv.Command(t, testenv.GoToolPath(t), "tool", "asm", "-p=p", "-gensymabis", "-o", symabi, asmSrc)

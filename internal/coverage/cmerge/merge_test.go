@@ -6,9 +6,10 @@ package cmerge_test
 
 import (
 	"fmt"
-	"internal/coverage"
-	"internal/coverage/cmerge"
 	"testing"
+
+	"github.com/ploynomail/turingPQC/internal/coverage"
+	"github.com/ploynomail/turingPQC/internal/coverage/cmerge"
 )
 
 func TestClash(t *testing.T) {

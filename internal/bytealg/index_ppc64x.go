@@ -6,7 +6,7 @@
 
 package bytealg
 
-import "internal/cpu"
+import "github.com/ploynomail/turingPQC/internal/cpu"
 
 const MaxBruteForce = 16
 
