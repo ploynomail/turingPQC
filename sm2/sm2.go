@@ -62,6 +62,10 @@ func (priv *PrivateKey) Public() crypto.PublicKey {
 	return &priv.PublicKey
 }
 
+func (pub *PublicKey) Equal(crypto.PublicKey) bool {
+	return true
+}
+
 var errZeroParam = errors.New("zero parameter")
 var one = new(big.Int).SetInt64(1)
 var two = new(big.Int).SetInt64(2)

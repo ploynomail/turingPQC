@@ -11,13 +11,17 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
+	"crypto/md5"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"math/big"
 	"net"
@@ -28,15 +32,16 @@ import (
 
 	// Explicitly import these for their crypto.RegisterHash init side-effects.
 	// Keep these as blank imports, even if they're imported above.
-	_ "crypto/sha1"
-	_ "crypto/sha256"
-	_ "crypto/sha512"
 
 	"golang.org/x/crypto/cryptobyte"
 	cryptobyte_asn1 "golang.org/x/crypto/cryptobyte/asn1"
+	"golang.org/x/crypto/ripemd160"
+	"golang.org/x/crypto/sha3"
 
 	falcon1024 "github.com/ploynomail/turingPQC/pqc/falcon/falcon1024"
 	falcon512 "github.com/ploynomail/turingPQC/pqc/falcon/falcon512"
+	"github.com/ploynomail/turingPQC/sm2"
+	"github.com/ploynomail/turingPQC/sm3"
 
 	dilithium2 "github.com/ploynomail/turingPQC/pqc/dilithium/dilithium2"
 	dilithium2AES "github.com/ploynomail/turingPQC/pqc/dilithium/dilithium2AES"
@@ -58,6 +63,116 @@ import (
 type pkixPublicKey struct {
 	Algo      pkix.AlgorithmIdentifier
 	BitString asn1.BitString
+}
+
+type Hash uint
+
+const (
+	MD4        Hash = 1 + iota // import golang.org/x/crypto/md4
+	MD5                        // import crypto/md5
+	SHA1                       // import crypto/sha1
+	SHA224                     // import crypto/sha256
+	SHA256                     // import crypto/sha256
+	SHA384                     // import crypto/sha512
+	SHA512                     // import crypto/sha512
+	MD5SHA1                    // no implementation; MD5+SHA1 used for TLS RSA
+	RIPEMD160                  // import golang.org/x/crypto/ripemd160
+	SHA3_224                   // import golang.org/x/crypto/sha3
+	SHA3_256                   // import golang.org/x/crypto/sha3
+	SHA3_384                   // import golang.org/x/crypto/sha3
+	SHA3_512                   // import golang.org/x/crypto/sha3
+	SHA512_224                 // import crypto/sha512
+	SHA512_256                 // import crypto/sha512
+	SM3
+	maxHash
+)
+
+var digestSizes = []uint8{
+	MD4:        16,
+	MD5:        16,
+	SHA1:       20,
+	SHA224:     28,
+	SHA256:     32,
+	SHA384:     48,
+	SHA512:     64,
+	SHA512_224: 28,
+	SHA512_256: 32,
+	SHA3_224:   28,
+	SHA3_256:   32,
+	SHA3_384:   48,
+	SHA3_512:   64,
+	MD5SHA1:    36,
+	RIPEMD160:  20,
+	SM3:        32,
+}
+
+func init() {
+	RegisterHash(MD4, nil)
+	RegisterHash(MD5, md5.New)
+	RegisterHash(SHA1, sha1.New)
+	RegisterHash(SHA224, sha256.New224)
+	RegisterHash(SHA256, sha256.New)
+	RegisterHash(SHA384, sha512.New384)
+	RegisterHash(SHA512, sha512.New)
+	RegisterHash(MD5SHA1, nil)
+	RegisterHash(RIPEMD160, ripemd160.New)
+	RegisterHash(SHA3_224, sha3.New224)
+	RegisterHash(SHA3_256, sha3.New256)
+	RegisterHash(SHA3_384, sha3.New384)
+	RegisterHash(SHA3_512, sha3.New512)
+	RegisterHash(SHA512_224, sha512.New512_224)
+	RegisterHash(SHA512_256, sha512.New512_256)
+	RegisterHash(SM3, sm3.New)
+}
+
+// HashFunc simply returns the value of h so that Hash implements SignerOpts.
+func (h Hash) HashFunc() crypto.Hash {
+	return crypto.Hash(h)
+}
+
+type dsaSignature struct {
+	R, S *big.Int
+}
+
+type ecdsaSignature dsaSignature
+
+// Size returns the length, in bytes, of a digest resulting from the given hash
+// function. It doesn't require that the hash function in question be linked
+// into the program.
+func (h Hash) Size() int {
+	if h > 0 && h < maxHash {
+		return int(digestSizes[h])
+	}
+	panic("crypto: Size of unknown hash function")
+}
+
+var hashes = make([]func() hash.Hash, maxHash)
+
+// New returns a new hash.Hash calculating the given hash function. New panics
+// if the hash function is not linked into the binary.
+func (h Hash) New() hash.Hash {
+	if h > 0 && h < maxHash {
+		f := hashes[h]
+		if f != nil {
+			return f()
+		}
+	}
+	panic("crypto: requested hash function #" + strconv.Itoa(int(h)) + " is unavailable")
+}
+
+// Available reports whether the given hash function is linked into the binary.
+func (h Hash) Available() bool {
+	return h < maxHash && hashes[h] != nil
+}
+
+// RegisterHash registers a function that returns a new instance of the given
+// hash function. This is intended to be called from the init function in
+// packages that implement hash functions.
+func RegisterHash(h Hash, f func() hash.Hash) {
+	if h >= maxHash {
+		panic("crypto: RegisterHash of unknown hash function")
+	}
+	hashes[h] = f
 }
 
 // ParsePKIXPublicKey parses a public key in PKIX, ASN.1 DER form.
@@ -160,7 +275,19 @@ func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorith
 	case *rainbowVCompressed.PublicKey:
 		publicKeyBytes = pub.Pk
 		publicKeyAlgorithm.Algorithm = oidPublicKeyRainbowVCompressed
-
+	case *sm2.PublicKey:
+		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+		oid, ok := oidFromNamedCurve(pub.Curve)
+		if !ok {
+			return nil, pkix.AlgorithmIdentifier{}, errors.New("x509: unsupported SM2 curve")
+		}
+		publicKeyAlgorithm.Algorithm = oidPublicKeyECDSA
+		var paramBytes []byte
+		paramBytes, err = asn1.Marshal(oid)
+		if err != nil {
+			return
+		}
+		publicKeyAlgorithm.Parameters.FullBytes = paramBytes
 	default:
 		return nil, pkix.AlgorithmIdentifier{}, fmt.Errorf("x509: unsupported public key type: %T", pub)
 	}
@@ -277,6 +404,9 @@ const (
 	PureRainbowVClassic
 	PureRainbowVCircumzenithal
 	PureRainbowVCompressed
+	SM2WithSM3
+	SM2WithSHA1
+	SM2WithSHA256
 )
 
 func (algo SignatureAlgorithm) isRSAPSS() bool {
@@ -322,6 +452,7 @@ const (
 	RainbowVClassic
 	RainbowVCircumzenithal
 	RainbowVCompressed
+	Sm2
 )
 
 var publicKeyAlgoName = [...]string{
@@ -346,6 +477,9 @@ var publicKeyAlgoName = [...]string{
 	RainbowVClassic:          "RainbowVClassic",
 	RainbowVCircumzenithal:   "RainbowVCircumzenithal",
 	RainbowVCompressed:       "RainbowVCompressed",
+	SM2WithSM3:               "SM2-SM3",
+	SM2WithSHA1:              "SM2-SHA1",
+	SM2WithSHA256:            "SM2-SHA256",
 }
 
 func (algo PublicKeyAlgorithm) String() string {
@@ -443,6 +577,13 @@ var (
 	oidSignatureRainbowVCircumzenithal   = asn1.ObjectIdentifier{1, 5, 2, 7}
 	oidSignatureRainbowVCompressed       = asn1.ObjectIdentifier{1, 5, 2, 8}
 
+	oidSignatureSM2WithSM3    = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 501}
+	oidSignatureSM2WithSHA1   = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 502}
+	oidSignatureSM2WithSHA256 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 503}
+	//	oidSignatureSM3WithRSA      = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 504}
+
+	oidSM3 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 401, 1}
+
 	oidSHA256 = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 2, 1}
 	oidSHA384 = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 2, 2}
 	oidSHA512 = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 2, 3}
@@ -460,42 +601,46 @@ var signatureAlgorithmDetails = []struct {
 	name       string
 	oid        asn1.ObjectIdentifier
 	pubKeyAlgo PublicKeyAlgorithm
-	hash       crypto.Hash
+	hash       Hash
 }{
-	{MD2WithRSA, "MD2-RSA", oidSignatureMD2WithRSA, RSA, crypto.Hash(0) /* no value for MD2 */},
-	{MD5WithRSA, "MD5-RSA", oidSignatureMD5WithRSA, RSA, crypto.MD5},
-	{SHA1WithRSA, "SHA1-RSA", oidSignatureSHA1WithRSA, RSA, crypto.SHA1},
-	{SHA1WithRSA, "SHA1-RSA", oidISOSignatureSHA1WithRSA, RSA, crypto.SHA1},
-	{SHA256WithRSA, "SHA256-RSA", oidSignatureSHA256WithRSA, RSA, crypto.SHA256},
-	{SHA384WithRSA, "SHA384-RSA", oidSignatureSHA384WithRSA, RSA, crypto.SHA384},
-	{SHA512WithRSA, "SHA512-RSA", oidSignatureSHA512WithRSA, RSA, crypto.SHA512},
-	{SHA256WithRSAPSS, "SHA256-RSAPSS", oidSignatureRSAPSS, RSA, crypto.SHA256},
-	{SHA384WithRSAPSS, "SHA384-RSAPSS", oidSignatureRSAPSS, RSA, crypto.SHA384},
-	{SHA512WithRSAPSS, "SHA512-RSAPSS", oidSignatureRSAPSS, RSA, crypto.SHA512},
-	{DSAWithSHA1, "DSA-SHA1", oidSignatureDSAWithSHA1, DSA, crypto.SHA1},
-	{DSAWithSHA256, "DSA-SHA256", oidSignatureDSAWithSHA256, DSA, crypto.SHA256},
-	{ECDSAWithSHA1, "ECDSA-SHA1", oidSignatureECDSAWithSHA1, ECDSA, crypto.SHA1},
-	{ECDSAWithSHA256, "ECDSA-SHA256", oidSignatureECDSAWithSHA256, ECDSA, crypto.SHA256},
-	{ECDSAWithSHA384, "ECDSA-SHA384", oidSignatureECDSAWithSHA384, ECDSA, crypto.SHA384},
-	{ECDSAWithSHA512, "ECDSA-SHA512", oidSignatureECDSAWithSHA512, ECDSA, crypto.SHA512},
-	{PureEd25519, "Ed25519", oidSignatureEd25519, Ed25519, crypto.Hash(0) /* no pre-hashing */},
+	{MD2WithRSA, "MD2-RSA", oidSignatureMD2WithRSA, RSA, Hash(0) /* no value for MD2 */},
+	{MD5WithRSA, "MD5-RSA", oidSignatureMD5WithRSA, RSA, MD5},
+	{SHA1WithRSA, "SHA1-RSA", oidSignatureSHA1WithRSA, RSA, SHA1},
+	{SHA1WithRSA, "SHA1-RSA", oidISOSignatureSHA1WithRSA, RSA, SHA1},
+	{SHA256WithRSA, "SHA256-RSA", oidSignatureSHA256WithRSA, RSA, SHA256},
+	{SHA384WithRSA, "SHA384-RSA", oidSignatureSHA384WithRSA, RSA, SHA384},
+	{SHA512WithRSA, "SHA512-RSA", oidSignatureSHA512WithRSA, RSA, SHA512},
+	{SHA256WithRSAPSS, "SHA256-RSAPSS", oidSignatureRSAPSS, RSA, SHA256},
+	{SHA384WithRSAPSS, "SHA384-RSAPSS", oidSignatureRSAPSS, RSA, SHA384},
+	{SHA512WithRSAPSS, "SHA512-RSAPSS", oidSignatureRSAPSS, RSA, SHA512},
+	{DSAWithSHA1, "DSA-SHA1", oidSignatureDSAWithSHA1, DSA, SHA1},
+	{DSAWithSHA256, "DSA-SHA256", oidSignatureDSAWithSHA256, DSA, SHA256},
+	{ECDSAWithSHA1, "ECDSA-SHA1", oidSignatureECDSAWithSHA1, ECDSA, SHA1},
+	{ECDSAWithSHA256, "ECDSA-SHA256", oidSignatureECDSAWithSHA256, ECDSA, SHA256},
+	{ECDSAWithSHA384, "ECDSA-SHA384", oidSignatureECDSAWithSHA384, ECDSA, SHA384},
+	{ECDSAWithSHA512, "ECDSA-SHA512", oidSignatureECDSAWithSHA512, ECDSA, SHA512},
+	{PureEd25519, "Ed25519", oidSignatureEd25519, Ed25519, Hash(0) /* no pre-hashing */},
 
-	{PureFalcon512, "falcon512", oidSignatureFalcon512, Falcon512, crypto.Hash(0)},
-	{PureFalcon1024, "Falcon1024", oidSignatureFalcon1024, Falcon1024, crypto.Hash(0)},
+	{PureFalcon512, "falcon512", oidSignatureFalcon512, Falcon512, Hash(0)},
+	{PureFalcon1024, "Falcon1024", oidSignatureFalcon1024, Falcon1024, Hash(0)},
 
-	{PureDilithium2, "Dilithium2", oidSignatureDilithium2, Dilithium2, crypto.Hash(0)},
-	{PureDilithium3, "Dilithium3", oidSignatureDilithium3, Dilithium3, crypto.Hash(0)},
-	{PureDilithium5, "Dilithium5", oidSignatureDilithium5, Dilithium5, crypto.Hash(0)},
-	{PureDilithium2AES, "Dilithium2AES", oidSignatureDilithium2AES, Dilithium2AES, crypto.Hash(0)},
-	{PureDilithium3AES, "Dilithium3AES", oidSignatureDilithium3AES, Dilithium3AES, crypto.Hash(0)},
-	{PureDilithium5AES, "Dilithium5AES", oidSignatureDilithium5AES, Dilithium5AES, crypto.Hash(0)},
+	{PureDilithium2, "Dilithium2", oidSignatureDilithium2, Dilithium2, Hash(0)},
+	{PureDilithium3, "Dilithium3", oidSignatureDilithium3, Dilithium3, Hash(0)},
+	{PureDilithium5, "Dilithium5", oidSignatureDilithium5, Dilithium5, Hash(0)},
+	{PureDilithium2AES, "Dilithium2AES", oidSignatureDilithium2AES, Dilithium2AES, Hash(0)},
+	{PureDilithium3AES, "Dilithium3AES", oidSignatureDilithium3AES, Dilithium3AES, Hash(0)},
+	{PureDilithium5AES, "Dilithium5AES", oidSignatureDilithium5AES, Dilithium5AES, Hash(0)},
 
-	{PureRainbowIIIClassic, "RainbowIIIClassic", oidSignatureRainbowIIIClassic, RainbowIIIClassic, crypto.Hash(0)},
-	{PureRainbowIIICircumzenithal, "RainbowIIICircumzenithal", oidSignatureRainbowIIICircumzenithal, RainbowIIICircumzenithal, crypto.Hash(0)},
-	{PureRainbowIIICompressed, "RainbowIIICompressed", oidSignatureRainbowIIICompressed, RainbowIIICompressed, crypto.Hash(0)},
-	{PureRainbowVClassic, "RainbowVClassic", oidSignatureRainbowVClassic, RainbowVClassic, crypto.Hash(0)},
-	{PureRainbowVCircumzenithal, "RainbowVCircumzenithal", oidSignatureRainbowVCircumzenithal, RainbowVCircumzenithal, crypto.Hash(0)},
-	{PureRainbowVCompressed, "RainbowVCompressed", oidSignatureRainbowVCompressed, RainbowVCompressed, crypto.Hash(0)},
+	{PureRainbowIIIClassic, "RainbowIIIClassic", oidSignatureRainbowIIIClassic, RainbowIIIClassic, Hash(0)},
+	{PureRainbowIIICircumzenithal, "RainbowIIICircumzenithal", oidSignatureRainbowIIICircumzenithal, RainbowIIICircumzenithal, Hash(0)},
+	{PureRainbowIIICompressed, "RainbowIIICompressed", oidSignatureRainbowIIICompressed, RainbowIIICompressed, Hash(0)},
+	{PureRainbowVClassic, "RainbowVClassic", oidSignatureRainbowVClassic, RainbowVClassic, Hash(0)},
+	{PureRainbowVCircumzenithal, "RainbowVCircumzenithal", oidSignatureRainbowVCircumzenithal, RainbowVCircumzenithal, Hash(0)},
+	{PureRainbowVCompressed, "RainbowVCompressed", oidSignatureRainbowVCompressed, RainbowVCompressed, Hash(0)},
+	{SM2WithSM3, "SM2-SM3", oidSignatureSM2WithSM3, ECDSA, SM3},
+	{SM2WithSHA1, "SM2-SHA1", oidSignatureSM2WithSHA1, Sm2, SHA1},
+	{SM2WithSHA256, "SM2-SHA256", oidSignatureSM2WithSHA256, Sm2, SHA256},
+	//	{SM3WithRSA, oidSignatureSM3WithRSA, RSA, SM3},
 }
 
 // hashToPSSParameters contains the DER encoded RSA PSS parameters for the
@@ -505,10 +650,10 @@ var signatureAlgorithmDetails = []struct {
 //   - maskGenAlgorithm always contains the default mgf1SHA1 identifier
 //   - saltLength contains the length of the associated hash
 //   - trailerField always contains the default trailerFieldBC value
-var hashToPSSParameters = map[crypto.Hash]asn1.RawValue{
-	crypto.SHA256: asn1.RawValue{FullBytes: []byte{48, 52, 160, 15, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 1, 5, 0, 161, 28, 48, 26, 6, 9, 42, 134, 72, 134, 247, 13, 1, 1, 8, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 1, 5, 0, 162, 3, 2, 1, 32}},
-	crypto.SHA384: asn1.RawValue{FullBytes: []byte{48, 52, 160, 15, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 2, 5, 0, 161, 28, 48, 26, 6, 9, 42, 134, 72, 134, 247, 13, 1, 1, 8, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 2, 5, 0, 162, 3, 2, 1, 48}},
-	crypto.SHA512: asn1.RawValue{FullBytes: []byte{48, 52, 160, 15, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 3, 5, 0, 161, 28, 48, 26, 6, 9, 42, 134, 72, 134, 247, 13, 1, 1, 8, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 3, 5, 0, 162, 3, 2, 1, 64}},
+var hashToPSSParameters = map[Hash]asn1.RawValue{
+	SHA256: asn1.RawValue{FullBytes: []byte{48, 52, 160, 15, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 1, 5, 0, 161, 28, 48, 26, 6, 9, 42, 134, 72, 134, 247, 13, 1, 1, 8, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 1, 5, 0, 162, 3, 2, 1, 32}},
+	SHA384: asn1.RawValue{FullBytes: []byte{48, 52, 160, 15, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 2, 5, 0, 161, 28, 48, 26, 6, 9, 42, 134, 72, 134, 247, 13, 1, 1, 8, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 2, 5, 0, 162, 3, 2, 1, 48}},
+	SHA512: asn1.RawValue{FullBytes: []byte{48, 52, 160, 15, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 3, 5, 0, 161, 28, 48, 26, 6, 9, 42, 134, 72, 134, 247, 13, 1, 1, 8, 48, 13, 6, 9, 96, 134, 72, 1, 101, 3, 4, 2, 3, 5, 0, 162, 3, 2, 1, 64}},
 }
 
 // pssParameters reflects the parameters in an AlgorithmIdentifier that
@@ -524,6 +669,9 @@ type pssParameters struct {
 }
 
 func getSignatureAlgorithmFromAI(ai pkix.AlgorithmIdentifier) SignatureAlgorithm {
+	if ai.Algorithm.Equal(oidSignatureSM2WithSM3) {
+		return SM2WithSM3
+	}
 	if ai.Algorithm.Equal(oidSignatureEd25519) {
 		// RFC 8410, Section 3
 		// > For all of the OIDs, the parameters MUST be absent.
@@ -617,6 +765,7 @@ var (
 	oidPublicKeyRainbowVClassic          = oidSignatureRainbowVClassic
 	oidPublicKeyRainbowVCircumzenithal   = oidSignatureRainbowVCircumzenithal
 	oidPublicKeyRainbowVCompressed       = oidSignatureRainbowVCompressed
+	oidPublicKeySM2                      = oidSignatureSM2WithSM3
 )
 
 func getPublicKeyAlgorithmFromOID(oid asn1.ObjectIdentifier) PublicKeyAlgorithm {
@@ -679,10 +828,12 @@ func getPublicKeyAlgorithmFromOID(oid asn1.ObjectIdentifier) PublicKeyAlgorithm 
 //
 // NB: secp256r1 is equivalent to prime256v1
 var (
-	oidNamedCurveP224 = asn1.ObjectIdentifier{1, 3, 132, 0, 33}
-	oidNamedCurveP256 = asn1.ObjectIdentifier{1, 2, 840, 10045, 3, 1, 7}
-	oidNamedCurveP384 = asn1.ObjectIdentifier{1, 3, 132, 0, 34}
-	oidNamedCurveP521 = asn1.ObjectIdentifier{1, 3, 132, 0, 35}
+	oidNamedCurveP224    = asn1.ObjectIdentifier{1, 3, 132, 0, 33}
+	oidNamedCurveP256    = asn1.ObjectIdentifier{1, 2, 840, 10045, 3, 1, 7}
+	oidNamedCurveP384    = asn1.ObjectIdentifier{1, 3, 132, 0, 34}
+	oidNamedCurveP521    = asn1.ObjectIdentifier{1, 3, 132, 0, 35}
+	oidNamedCurveP256SM2 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301} // I get the SM2 ID through parsing the pem file generated by gmssl
+
 )
 
 func namedCurveFromOID(oid asn1.ObjectIdentifier) elliptic.Curve {
@@ -695,6 +846,8 @@ func namedCurveFromOID(oid asn1.ObjectIdentifier) elliptic.Curve {
 		return elliptic.P384()
 	case oid.Equal(oidNamedCurveP521):
 		return elliptic.P521()
+	case oid.Equal(oidNamedCurveP256SM2):
+		return sm2.P256Sm2()
 	}
 	return nil
 }
@@ -709,6 +862,8 @@ func oidFromNamedCurve(curve elliptic.Curve) (asn1.ObjectIdentifier, bool) {
 		return oidNamedCurveP384, true
 	case elliptic.P521():
 		return oidNamedCurveP521, true
+	case sm2.P256Sm2():
+		return oidNamedCurveP256SM2, true
 	}
 
 	return nil, false
@@ -1004,22 +1159,36 @@ func signaturePublicKeyAlgoMismatchError(expectedPubKeyAlgo PublicKeyAlgorithm, 
 // CheckSignature verifies that signature is a valid signature over signed from
 // a crypto.PublicKey.
 func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey crypto.PublicKey) (err error) {
-	var hashType crypto.Hash
+	var hashType Hash
+	switch algo {
+	case SHA1WithRSA, DSAWithSHA1, ECDSAWithSHA1, SM2WithSHA1:
+		hashType = SHA1
+	case SHA256WithRSA, SHA256WithRSAPSS, DSAWithSHA256, ECDSAWithSHA256, SM2WithSHA256:
+		hashType = SHA256
+	case SHA384WithRSA, SHA384WithRSAPSS, ECDSAWithSHA384:
+		hashType = SHA384
+	case SHA512WithRSA, SHA512WithRSAPSS, ECDSAWithSHA512:
+		hashType = SHA512
+	case MD2WithRSA, MD5WithRSA:
+		return InsecureAlgorithmError(algo)
+	case SM2WithSM3: // SM3WithRSA reserve
+		hashType = SM3
+	default:
+		return ErrUnsupportedAlgorithm
+	}
 	var pubKeyAlgo PublicKeyAlgorithm
-
 	for _, details := range signatureAlgorithmDetails {
 		if details.algo == algo {
 			hashType = details.hash
 			pubKeyAlgo = details.pubKeyAlgo
 		}
 	}
-
 	switch hashType {
-	case crypto.Hash(0):
-		if pubKeyAlgo != Ed25519 && pubKeyAlgo != Falcon512 && pubKeyAlgo != Falcon1024 && pubKeyAlgo != Dilithium2 && pubKeyAlgo != Dilithium3 && pubKeyAlgo != Dilithium5 && pubKeyAlgo != Dilithium2AES && pubKeyAlgo != Dilithium3AES && pubKeyAlgo != Dilithium5AES && pubKeyAlgo != RainbowIIIClassic && pubKeyAlgo != RainbowIIICircumzenithal && pubKeyAlgo != RainbowIIICompressed && pubKeyAlgo != RainbowVClassic && pubKeyAlgo != RainbowVCircumzenithal && pubKeyAlgo != RainbowVCompressed {
+	case Hash(0):
+		if pubKeyAlgo != Sm2 && pubKeyAlgo != Ed25519 && pubKeyAlgo != Falcon512 && pubKeyAlgo != Falcon1024 && pubKeyAlgo != Dilithium2 && pubKeyAlgo != Dilithium3 && pubKeyAlgo != Dilithium5 && pubKeyAlgo != Dilithium2AES && pubKeyAlgo != Dilithium3AES && pubKeyAlgo != Dilithium5AES && pubKeyAlgo != RainbowIIIClassic && pubKeyAlgo != RainbowIIICircumzenithal && pubKeyAlgo != RainbowIIICompressed && pubKeyAlgo != RainbowVClassic && pubKeyAlgo != RainbowVCircumzenithal && pubKeyAlgo != RainbowVCompressed {
 			return ErrUnsupportedAlgorithm
 		}
-	case crypto.MD5:
+	case MD5:
 		return InsecureAlgorithmError(algo)
 	default:
 		if !hashType.Available() {
@@ -1035,17 +1204,43 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
 		}
 		if algo.isRSAPSS() {
-			return rsa.VerifyPSS(pub, hashType, signed, signature, &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash})
+			return rsa.VerifyPSS(pub, crypto.Hash(hashType), signed, signature, &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash})
 		} else {
-			return rsa.VerifyPKCS1v15(pub, hashType, signed, signature)
+			return rsa.VerifyPKCS1v15(pub, crypto.Hash(hashType), signed, signature)
 		}
 	case *ecdsa.PublicKey:
 		if pubKeyAlgo != ECDSA {
 			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
 		}
-		if !ecdsa.VerifyASN1(pub, signed, signature) {
-			return errors.New("x509: ECDSA verification failure")
+		ecdsaSig := new(ecdsaSignature)
+		if rest, err := asn1.Unmarshal(signature, ecdsaSig); err != nil {
+			return err
+		} else if len(rest) != 0 {
+			return errors.New("x509: trailing data after ECDSA signature")
 		}
+		if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
+			return errors.New("x509: ECDSA signature contained zero or negative values")
+		}
+		switch pub.Curve {
+		case sm2.P256Sm2():
+			sm2pub := &sm2.PublicKey{
+				Curve: pub.Curve,
+				X:     pub.X,
+				Y:     pub.Y,
+			}
+			// if !sm2.Sm2Verify(sm2pub, signed, nil, ecdsaSig.R, ecdsaSig.S) {
+			// 	return errors.New("x509: SM2 verification failure")
+			// }
+			if !sm2pub.Verify(signed, signature) {
+				fmt.Println("sm2pub.Verify failed")
+				return errors.New("x509: sm2 verification failure")
+			}
+		default:
+			if !ecdsa.VerifyASN1(pub, signed, signature) {
+				return errors.New("x509: ECDSA verification failure")
+			}
+		}
+
 		return
 	case ed25519.PublicKey:
 		if pubKeyAlgo != Ed25519 {
@@ -1170,7 +1365,44 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 			return errors.New("x509: pqc verification failure, rainbowVCompressed")
 		}
 		return
+	case *sm2.PublicKey:
+		if pubKeyAlgo != ECDSA {
+			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
+		}
+		ecdsaSig := new(ecdsaSignature)
+		if rest, err := asn1.Unmarshal(signature, ecdsaSig); err != nil {
+			return err
+		} else if len(rest) != 0 {
+			return errors.New("x509: trailing data after ECDSA signature")
+		}
+		if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
+			return errors.New("x509: ECDSA signature contained zero or negative values")
+		}
+		switch pub.Curve {
+		case sm2.P256Sm2():
+			sm2pub := &sm2.PublicKey{
+				Curve: pub.Curve,
+				X:     pub.X,
+				Y:     pub.Y,
+			}
+			// if !sm2.Sm2Verify(sm2pub, signed, nil, ecdsaSig.R, ecdsaSig.S) {
+			// 	return errors.New("x509: SM2 verification failure")
+			// }
+			if !sm2pub.Verify(signed, signature) {
+				fmt.Println("sm2pub.Verify failed")
+				return errors.New("x509: sm2 verification failure")
+			}
+		}
 
+		return
+		// case *sm2.PublicKey:
+		// 	if pubKeyAlgo != Sm2 {
+		// 		return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
+		// 	}
+		// 	if !pub.Verify(signed, signature) {
+		// 		return errors.New("x509: sm2 verification failure")
+		// 	}
+		// 	return
 		//default:
 		//	fmt.Println("公钥类型: ", pub)
 	}
@@ -1652,13 +1884,13 @@ func subjectBytes(cert *Certificate) ([]byte, error) {
 // signingParamsForPublicKey returns the parameters to use for signing with
 // priv. If requestedSigAlgo is not zero then it overrides the default
 // signature algorithm.
-func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgorithm) (hashFunc crypto.Hash, sigAlgo pkix.AlgorithmIdentifier, err error) {
+func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgorithm) (hashFunc Hash, sigAlgo pkix.AlgorithmIdentifier, err error) {
 	var pubType PublicKeyAlgorithm
 
 	switch pub := pub.(type) {
 	case *rsa.PublicKey:
 		pubType = RSA
-		hashFunc = crypto.SHA256
+		hashFunc = SHA256
 		sigAlgo.Algorithm = oidSignatureSHA256WithRSA
 		sigAlgo.Parameters = asn1.NullRawValue
 
@@ -1667,13 +1899,13 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 
 		switch pub.Curve {
 		case elliptic.P224(), elliptic.P256():
-			hashFunc = crypto.SHA256
+			hashFunc = SHA256
 			sigAlgo.Algorithm = oidSignatureECDSAWithSHA256
 		case elliptic.P384():
-			hashFunc = crypto.SHA384
+			hashFunc = SHA384
 			sigAlgo.Algorithm = oidSignatureECDSAWithSHA384
 		case elliptic.P521():
-			hashFunc = crypto.SHA512
+			hashFunc = SHA512
 			sigAlgo.Algorithm = oidSignatureECDSAWithSHA512
 		default:
 			err = errors.New("x509: unknown elliptic curve")
@@ -1727,7 +1959,15 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 	case *rainbowVCompressed.PublicKey:
 		pubType = RainbowVCompressed
 		sigAlgo.Algorithm = oidSignatureRainbowVCompressed
-
+	case *sm2.PublicKey:
+		pubType = ECDSA
+		switch pub.Curve {
+		case sm2.P256Sm2():
+			hashFunc = SM3
+			sigAlgo.Algorithm = oidSignatureSM2WithSM3
+		default:
+			err = errors.New("x509: unknown SM2 curve")
+		}
 	default:
 		err = errors.New("x509: only RSA, ECDSA and Ed25519 keys supported")
 	}
@@ -1842,7 +2082,6 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 	if err != nil {
 		return nil, err
 	}
-
 	publicKeyBytes, publicKeyAlgorithm, err := marshalPublicKey(pub)
 	if err != nil {
 		return nil, err
@@ -1917,7 +2156,7 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 	if template.SignatureAlgorithm != 0 && template.SignatureAlgorithm.isRSAPSS() {
 		signerOpts = &rsa.PSSOptions{
 			SaltLength: rsa.PSSSaltLengthEqualsHash,
-			Hash:       hashFunc,
+			Hash:       crypto.Hash(hashFunc),
 		}
 	}
 
@@ -1935,7 +2174,6 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 	if err != nil {
 		return nil, err
 	}
-
 	// Check the signature to ensure the crypto.Signer behaved correctly.
 	// We skip this check if the signature algorithm is MD5WithRSA as we
 	// only support this algorithm for signing, and not verification.
@@ -2203,7 +2441,7 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 		return nil, errors.New("x509: certificate private key does not implement crypto.Signer")
 	}
 
-	var hashFunc crypto.Hash
+	var hashFunc Hash
 	var sigAlgo pkix.AlgorithmIdentifier
 	hashFunc, sigAlgo, err = signingParamsForPublicKey(key.Public(), template.SignatureAlgorithm)
 	if err != nil {
@@ -2332,9 +2570,12 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 	tbsCSR.Raw = tbsCSRContents
 
 	signed := tbsCSRContents
-	if hashFunc != 0 {
+	switch template.SignatureAlgorithm {
+	case SM2WithSM3, SM2WithSHA1, SM2WithSHA256, UnknownSignatureAlgorithm:
+		break
+	default:
 		h := hashFunc.New()
-		h.Write(signed)
+		h.Write(tbsCSRContents)
 		signed = h.Sum(nil)
 	}
 
@@ -2544,7 +2785,7 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 	if template.SignatureAlgorithm.isRSAPSS() {
 		signerOpts = &rsa.PSSOptions{
 			SaltLength: rsa.PSSSaltLengthEqualsHash,
-			Hash:       hashFunc,
+			Hash:       crypto.Hash(hashFunc),
 		}
 	}
 

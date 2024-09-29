@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
@@ -39,7 +38,6 @@ func TestSm2(t *testing.T) {
 		fmt.Printf("Error: failed to encrypt %s: %v\n", msg, err)
 		return
 	}
-	// fmt.Printf("Cipher text = %v\n", d0)
 	d1, err := priv.DecryptAsn1(d0)
 	if err != nil {
 		fmt.Printf("Error: failed to decrypt: %v\n", err)
@@ -56,17 +54,17 @@ func TestSm2(t *testing.T) {
 		fmt.Printf("Error: failed to decrypt: %v\n", err)
 	}
 	fmt.Printf("clear text = %s\n", d3)
-	msg, _ = ioutil.ReadFile("ifile")             // 从文件读取数据
+	msg, _ = os.ReadFile("ifile")                 // 从文件读取数据
 	sign, err := priv.Sign(rand.Reader, msg, nil) // 签名
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile("TestResult", sign, os.FileMode(0644))
+	err = os.WriteFile("TestResult", sign, os.FileMode(0644))
 	if err != nil {
 		t.Fatal(err)
 	}
-	signdata, _ := ioutil.ReadFile("TestResult")
+	signdata, _ := os.ReadFile("TestResult")
 	ok := priv.PublicKey.Verify(msg, signdata) // 密钥验证
 	if ok != true {
 		fmt.Printf("Verify error\n")
