@@ -104,7 +104,21 @@ func TestParsePKIXPublicKey(t *testing.T) {
 			t.Errorf("Value returned from ParsePKIXPublicKey was not an Ed25519 public key")
 		}
 	})
+	t.Run("SM2", func(t *testing.T) {
+		pub := testParsePKIXPublicKey(t, pemSM2PublicKey)
+		_, ok := pub.(*sm2.PublicKey)
+		if !ok {
+			t.Errorf("%T: Value returned from ParsePKIXPublicKey was not an SM2 public key", pub)
+			t.Errorf("Value returned from ParsePKIXPublicKey was not an SM2 public key")
+		}
+	})
 }
+
+var pemSM2PublicKey = `-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEvXin74yFjMOnA5LO9J/nLQbBC7sT
+fT5NtxIWT7H5ZIh0PwrCe9Wf++1+JVquAu1F26M6aRijShV3dqVMptSgFg==
+-----END PUBLIC KEY-----
+`
 
 var pemPublicKey = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3VoPN9PKUjKFLMwOge6+

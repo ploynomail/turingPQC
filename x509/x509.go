@@ -41,6 +41,7 @@ import (
 	falcon1024 "github.com/ploynomail/turingPQC/pqc/falcon/falcon1024"
 	falcon512 "github.com/ploynomail/turingPQC/pqc/falcon/falcon512"
 	"github.com/ploynomail/turingPQC/sm2"
+	sm2dilithium2hybrid "github.com/ploynomail/turingPQC/sm2_dilithium2_hybrid"
 	"github.com/ploynomail/turingPQC/sm3"
 
 	dilithium2 "github.com/ploynomail/turingPQC/pqc/dilithium/dilithium2"
@@ -288,6 +289,11 @@ func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorith
 			return
 		}
 		publicKeyAlgorithm.Parameters.FullBytes = paramBytes
+	case *sm2dilithium2hybrid.PublicKey:
+		dilithium2PubKeyBytes := pub.Dilithium2PublicKey.Pk
+		sm2PubKeyBytes := elliptic.Marshal(pub.SM2PublicKey.Curve, pub.SM2PublicKey.X, pub.SM2PublicKey.Y)
+		publicKeyBytes = append(sm2PubKeyBytes, dilithium2PubKeyBytes...)
+		publicKeyAlgorithm.Algorithm = oidPublicKeySm2Dilithium2Hybrid
 	default:
 		return nil, pkix.AlgorithmIdentifier{}, fmt.Errorf("x509: unsupported public key type: %T", pub)
 	}
@@ -407,6 +413,7 @@ const (
 	SM2WithSM3
 	SM2WithSHA1
 	SM2WithSHA256
+	PureSM2Dilithium2Hybrid
 )
 
 func (algo SignatureAlgorithm) isRSAPSS() bool {
@@ -453,6 +460,7 @@ const (
 	RainbowVCircumzenithal
 	RainbowVCompressed
 	Sm2
+	Sm2Dilithium2Hybrid
 )
 
 var publicKeyAlgoName = [...]string{
@@ -480,6 +488,7 @@ var publicKeyAlgoName = [...]string{
 	SM2WithSM3:               "SM2-SM3",
 	SM2WithSHA1:              "SM2-SHA1",
 	SM2WithSHA256:            "SM2-SHA256",
+	Sm2Dilithium2Hybrid:      "SM2-Dilithium2-Hybrid",
 }
 
 func (algo PublicKeyAlgorithm) String() string {
@@ -593,7 +602,8 @@ var (
 	// oidISOSignatureSHA1WithRSA means the same as oidSignatureSHA1WithRSA
 	// but it's specified by ISO. Microsoft's makecert.exe has been known
 	// to produce certificates with this OID.
-	oidISOSignatureSHA1WithRSA = asn1.ObjectIdentifier{1, 3, 14, 3, 2, 29}
+	oidISOSignatureSHA1WithRSA      = asn1.ObjectIdentifier{1, 3, 14, 3, 2, 29}
+	oidSignatureSm2Dilithium2Hybrid = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 800}
 )
 
 var signatureAlgorithmDetails = []struct {
@@ -640,6 +650,7 @@ var signatureAlgorithmDetails = []struct {
 	{SM2WithSM3, "SM2-SM3", oidSignatureSM2WithSM3, ECDSA, SM3},
 	{SM2WithSHA1, "SM2-SHA1", oidSignatureSM2WithSHA1, Sm2, SHA1},
 	{SM2WithSHA256, "SM2-SHA256", oidSignatureSM2WithSHA256, Sm2, SHA256},
+	{PureSM2Dilithium2Hybrid, "SM2-Dilithium2-Hybrid", oidSignatureSm2Dilithium2Hybrid, Sm2Dilithium2Hybrid, Hash(0)},
 	//	{SM3WithRSA, oidSignatureSM3WithRSA, RSA, SM3},
 }
 
@@ -766,8 +777,10 @@ var (
 	oidPublicKeyRainbowVCircumzenithal   = oidSignatureRainbowVCircumzenithal
 	oidPublicKeyRainbowVCompressed       = oidSignatureRainbowVCompressed
 	oidPublicKeySM2                      = oidSignatureSM2WithSM3
+	oidPublicKeySm2Dilithium2Hybrid      = oidSignatureSm2Dilithium2Hybrid
 )
 
+// 根据oid获取公钥算法
 func getPublicKeyAlgorithmFromOID(oid asn1.ObjectIdentifier) PublicKeyAlgorithm {
 	switch {
 	case oid.Equal(oidPublicKeyRSA):
@@ -1173,6 +1186,8 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		return InsecureAlgorithmError(algo)
 	case SM2WithSM3: // SM3WithRSA reserve
 		hashType = SM3
+	case PureSM2Dilithium2Hybrid:
+		hashType = Hash(0)
 	default:
 		return ErrUnsupportedAlgorithm
 	}
@@ -1185,7 +1200,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 	}
 	switch hashType {
 	case Hash(0):
-		if pubKeyAlgo != Sm2 && pubKeyAlgo != Ed25519 && pubKeyAlgo != Falcon512 && pubKeyAlgo != Falcon1024 && pubKeyAlgo != Dilithium2 && pubKeyAlgo != Dilithium3 && pubKeyAlgo != Dilithium5 && pubKeyAlgo != Dilithium2AES && pubKeyAlgo != Dilithium3AES && pubKeyAlgo != Dilithium5AES && pubKeyAlgo != RainbowIIIClassic && pubKeyAlgo != RainbowIIICircumzenithal && pubKeyAlgo != RainbowIIICompressed && pubKeyAlgo != RainbowVClassic && pubKeyAlgo != RainbowVCircumzenithal && pubKeyAlgo != RainbowVCompressed {
+		if pubKeyAlgo != Sm2Dilithium2Hybrid && pubKeyAlgo != Sm2 && pubKeyAlgo != Ed25519 && pubKeyAlgo != Falcon512 && pubKeyAlgo != Falcon1024 && pubKeyAlgo != Dilithium2 && pubKeyAlgo != Dilithium3 && pubKeyAlgo != Dilithium5 && pubKeyAlgo != Dilithium2AES && pubKeyAlgo != Dilithium3AES && pubKeyAlgo != Dilithium5AES && pubKeyAlgo != RainbowIIIClassic && pubKeyAlgo != RainbowIIICircumzenithal && pubKeyAlgo != RainbowIIICompressed && pubKeyAlgo != RainbowVClassic && pubKeyAlgo != RainbowVCircumzenithal && pubKeyAlgo != RainbowVCompressed {
 			return ErrUnsupportedAlgorithm
 		}
 	case MD5:
@@ -1395,16 +1410,14 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		}
 
 		return
-		// case *sm2.PublicKey:
-		// 	if pubKeyAlgo != Sm2 {
-		// 		return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
-		// 	}
-		// 	if !pub.Verify(signed, signature) {
-		// 		return errors.New("x509: sm2 verification failure")
-		// 	}
-		// 	return
-		//default:
-		//	fmt.Println("公钥类型: ", pub)
+	case *sm2dilithium2hybrid.PublicKey:
+		if pubKeyAlgo != Sm2Dilithium2Hybrid {
+			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
+		}
+		if !sm2dilithium2hybrid.Verify(pub, signed, signature) {
+			return errors.New("x509: pqc verification failure, sm2dilithium2hybrid")
+		}
+		return
 	}
 	return ErrUnsupportedAlgorithm
 }
@@ -1968,6 +1981,9 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		default:
 			err = errors.New("x509: unknown SM2 curve")
 		}
+	case *sm2dilithium2hybrid.PublicKey:
+		pubType = Sm2Dilithium2Hybrid
+		sigAlgo.Algorithm = oidSignatureSm2Dilithium2Hybrid
 	default:
 		err = errors.New("x509: only RSA, ECDSA and Ed25519 keys supported")
 	}

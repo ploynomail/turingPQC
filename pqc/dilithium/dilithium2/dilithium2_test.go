@@ -14,6 +14,7 @@ func TestDilithium2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Log(len(sig))
 	if !priKey.Verify(msg, sig) {
 		t.Fatal("verify failed")
 	}

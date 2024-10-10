@@ -17,6 +17,7 @@ import (
 	"math/big"
 	"net"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +29,7 @@ import (
 
 	falcon1024 "github.com/ploynomail/turingPQC/pqc/falcon/falcon1024"
 	falcon512 "github.com/ploynomail/turingPQC/pqc/falcon/falcon512"
+	"github.com/ploynomail/turingPQC/sm2"
 
 	dilithium2 "github.com/ploynomail/turingPQC/pqc/dilithium/dilithium2"
 	dilithium2AES "github.com/ploynomail/turingPQC/pqc/dilithium/dilithium2AES"
@@ -323,16 +325,41 @@ func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{
 		if namedCurve == nil {
 			return nil, errors.New("x509: unsupported elliptic curve")
 		}
-		x, y := elliptic.Unmarshal(namedCurve, asn1Data)
-		if x == nil {
-			return nil, errors.New("x509: failed to unmarshal elliptic curve point")
+		switch namedCurve {
+		case sm2.P256Sm2():
+			// var pubkey pkixPublicKey
+			// fmt.Println("sm2")
+			// if _, err := asn1.Unmarshal(asn1Data, &pubkey); err != nil {
+			// 	return nil, err
+			// }
+			// fmt.Println("sm2")
+			// if !reflect.DeepEqual(pubkey.Algo.Algorithm, oidSM2) {
+			// 	return nil, errors.New("x509: not sm2 elliptic curve")
+			// }
+			x, y := elliptic.Unmarshal(namedCurve, asn1Data)
+			if x == nil {
+				return nil, errors.New("x509: failed to unmarshal elliptic curve point")
+			}
+			curve := sm2.P256Sm2()
+			pub := sm2.PublicKey{
+				Curve: curve,
+				X:     x,
+				Y:     y,
+			}
+			return &pub, nil
+		default:
+			x, y := elliptic.Unmarshal(namedCurve, asn1Data)
+			if x == nil {
+				return nil, errors.New("x509: failed to unmarshal elliptic curve point")
+			}
+			pub := &ecdsa.PublicKey{
+				Curve: namedCurve,
+				X:     x,
+				Y:     y,
+			}
+			return pub, nil
 		}
-		pub := &ecdsa.PublicKey{
-			Curve: namedCurve,
-			X:     x,
-			Y:     y,
-		}
-		return pub, nil
+
 	case Ed25519:
 		// RFC 8410, Section 3
 		// > For all of the OIDs, the parameters MUST be absent.
@@ -446,6 +473,23 @@ func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{
 		pub := make([]byte, rainbowVCompressed.PublicKeySize)
 		copy(pub, asn1Data)
 		return &rainbowVCompressed.PublicKey{Pk: pub}, nil
+	case Sm2:
+		var pubkey pkixPublicKey
+
+		if _, err := asn1.Unmarshal(asn1Data, &pubkey); err != nil {
+			return nil, err
+		}
+		if !reflect.DeepEqual(pubkey.Algo.Algorithm, oidSM2) {
+			return nil, errors.New("x509: not sm2 elliptic curve")
+		}
+		curve := sm2.P256Sm2()
+		x, y := elliptic.Unmarshal(curve, pubkey.BitString.Bytes)
+		pub := &sm2.PublicKey{
+			Curve: curve,
+			X:     x,
+			Y:     y,
+		}
+		return pub, nil
 
 	default:
 		return nil, errors.New("x509: wrong public key")

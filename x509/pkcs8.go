@@ -16,6 +16,7 @@ import (
 	falcon1024 "github.com/ploynomail/turingPQC/pqc/falcon/falcon1024"
 	falcon512 "github.com/ploynomail/turingPQC/pqc/falcon/falcon512"
 	"github.com/ploynomail/turingPQC/sm2"
+	sm2dilithium2hybrid "github.com/ploynomail/turingPQC/sm2_dilithium2_hybrid"
 
 	dilithium2 "github.com/ploynomail/turingPQC/pqc/dilithium/dilithium2"
 	dilithium2AES "github.com/ploynomail/turingPQC/pqc/dilithium/dilithium2AES"
@@ -418,6 +419,17 @@ func MarshalPKCS8PrivateKey(key interface{}) ([]byte, error) {
 			},
 		}
 		privKey.PrivateKey = k.D.Bytes()
+	case *sm2dilithium2hybrid.PrivateKey:
+		oidBytes, err := asn1.Marshal(oidPublicKeySm2Dilithium2Hybrid)
+		if err != nil {
+			return nil, errors.New("x509: failed to marshal curve OID: " + err.Error())
+		}
+		privKey.Algo = pkix.AlgorithmIdentifier{
+			Algorithm: oidPublicKeyECDSA,
+			Parameters: asn1.RawValue{
+				FullBytes: oidBytes,
+			},
+		}
 	default:
 		return nil, fmt.Errorf("x509: unknown key type while marshaling PKCS#8: %T", key)
 	}

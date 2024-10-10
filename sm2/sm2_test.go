@@ -65,6 +65,7 @@ func TestSm2(t *testing.T) {
 		t.Fatal(err)
 	}
 	signdata, _ := os.ReadFile("TestResult")
+	t.Log(len(signdata))
 	ok := priv.PublicKey.Verify(msg, signdata) // 密钥验证
 	if ok != true {
 		fmt.Printf("Verify error\n")
