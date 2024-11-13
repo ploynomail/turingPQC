@@ -7,6 +7,7 @@ package x509
 import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -425,11 +426,18 @@ func MarshalPKCS8PrivateKey(key interface{}) ([]byte, error) {
 			return nil, errors.New("x509: failed to marshal curve OID: " + err.Error())
 		}
 		privKey.Algo = pkix.AlgorithmIdentifier{
-			Algorithm: oidPublicKeyECDSA,
+			Algorithm: oidPublicKeySm2Hybrid,
 			Parameters: asn1.RawValue{
 				FullBytes: oidBytes,
 			},
 		}
+		var priv sm2PrivateKey
+		priv.Version = 1
+		priv.NamedCurveOID = oidNamedCurveP256SM2
+		priv.PublicKey = asn1.BitString{Bytes: elliptic.Marshal(k.SM2PrivateKey.Curve, k.SM2PrivateKey.X, k.SM2PrivateKey.Y)}
+		priv.PrivateKey = k.SM2PrivateKey.D.Bytes()
+		sm2PrvkBytes, _ := asn1.Marshal(priv)
+		privKey.PrivateKey = append(sm2PrvkBytes, k.Dilithium2PrivateKey.Sk...)
 	default:
 		return nil, fmt.Errorf("x509: unknown key type while marshaling PKCS#8: %T", key)
 	}

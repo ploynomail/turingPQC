@@ -18,9 +18,7 @@ func main() {
 	ca := &x509.Certificate{
 		SerialNumber: big.NewInt(1653),
 		Subject: pkix.Name{
-			Country:            []string{"China"},
-			Organization:       []string{""},
-			OrganizationalUnit: []string{""},
+			CommonName: "lalala",
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(10, 0, 0),

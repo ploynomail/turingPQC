@@ -293,7 +293,11 @@ func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorith
 		dilithium2PubKeyBytes := pub.Dilithium2PublicKey.Pk
 		sm2PubKeyBytes := elliptic.Marshal(pub.SM2PublicKey.Curve, pub.SM2PublicKey.X, pub.SM2PublicKey.Y)
 		publicKeyBytes = append(sm2PubKeyBytes, dilithium2PubKeyBytes...)
-		publicKeyAlgorithm.Algorithm = oidPublicKeySm2Dilithium2Hybrid
+		oidBytes, _ := asn1.Marshal(oidPublicKeySm2Dilithium2Hybrid)
+		publicKeyAlgorithm.Algorithm = oidPublicKeySm2Hybrid
+		publicKeyAlgorithm.Parameters = asn1.RawValue{
+			FullBytes: oidBytes,
+		}
 	default:
 		return nil, pkix.AlgorithmIdentifier{}, fmt.Errorf("x509: unsupported public key type: %T", pub)
 	}
@@ -603,7 +607,8 @@ var (
 	// but it's specified by ISO. Microsoft's makecert.exe has been known
 	// to produce certificates with this OID.
 	oidISOSignatureSHA1WithRSA      = asn1.ObjectIdentifier{1, 3, 14, 3, 2, 29}
-	oidSignatureSm2Dilithium2Hybrid = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 800}
+	oidSignatureSm2Hybrid           = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 800}
+	oidSignatureSm2Dilithium2Hybrid = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 800, 1, 1}
 )
 
 var signatureAlgorithmDetails = []struct {
@@ -777,6 +782,7 @@ var (
 	oidPublicKeyRainbowVCircumzenithal   = oidSignatureRainbowVCircumzenithal
 	oidPublicKeyRainbowVCompressed       = oidSignatureRainbowVCompressed
 	oidPublicKeySM2                      = oidSignatureSM2WithSM3
+	oidPublicKeySm2Hybrid                = oidSignatureSm2Hybrid
 	oidPublicKeySm2Dilithium2Hybrid      = oidSignatureSm2Dilithium2Hybrid
 )
 
