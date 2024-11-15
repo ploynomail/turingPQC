@@ -2,7 +2,6 @@ package sm2dilithium2hybrid
 
 import (
 	"crypto"
-	"fmt"
 	"io"
 
 	"github.com/ploynomail/turingPQC/pqc/dilithium/dilithium2"
@@ -47,7 +46,6 @@ func (priv *PrivateKey) Sign(random io.Reader, msg []byte, signer crypto.SignerO
 func (pub *PublicKey) Verify(msg []byte, sig []byte) bool {
 	sm2Sig := sig[:len(sig)-2420]
 	if !pub.SM2PublicKey.Verify(msg, sm2Sig) {
-		fmt.Println("sm2 verify failed")
 		return false
 	}
 	dilithium2Sig := sig[len(sig)-2420:]

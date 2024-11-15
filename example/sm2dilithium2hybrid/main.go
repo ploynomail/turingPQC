@@ -15,13 +15,31 @@ import (
 
 func main() {
 	// ca 证书
+	// selfSignCa()
+	// 待签署证书及其私钥公钥==================================
+	caSelfSignedPrivateKey, err := ReadAndParsePrivateKey("ca.key")
+	if err != nil {
+		log.Println("read ca private key failed", err)
+		return
+	}
+	caCert, err := ReadAndParseCert("ca.pem")
+	if err != nil {
+		log.Println("read ca cert failed", err)
+		return
+	}
+	sigeCert("198", caCert, caSelfSignedPrivateKey)
+	// sigeCert("197", ca, caSelfSignedPrivateKey, caSelfSigned)
+
+}
+
+func selfSignCa() {
 	ca := &x509.Certificate{
-		SerialNumber: big.NewInt(1653),
+		SerialNumber: big.NewInt(1650),
 		Subject: pkix.Name{
-			CommonName: "lalala",
+			CommonName: "ROOT CA",
 		},
 		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(10, 0, 0),
+		NotAfter:              time.Now().AddDate(10, 0, 0), // 10年
 		SubjectKeyId:          []byte{1, 2, 3, 4, 5},
 		BasicConstraintsValid: true,
 		IsCA:                  true,
@@ -42,29 +60,22 @@ func main() {
 
 	caSelfSignedFile := "ca.pem"
 	log.Println("write to", caSelfSignedFile)
-	os.WriteFile(caSelfSignedFile, caSelfSigned, 0777) // 将自签证书写入文件
 	caSelfSignedPrivateKeyFile := "ca.key"
-
 	caSelfSignedPrivateKeyDER, err := x509.MarshalPKCS8PrivateKey(caSelfSignedPrivateKey) // 将私钥转换为 DER 格式
 	if err != nil {
 		log.Println("marshal pkcs8 failed", err)
 		return
 	}
-	pem.Encode(os.Stdout, &pem.Block{Type: "PRIVATE KEY", Bytes: caSelfSignedPrivateKeyDER})
-	pem.Encode(os.Stdout, &pem.Block{Type: "CERTIFICATE", Bytes: caSelfSigned})
 	log.Println("write to", caSelfSignedPrivateKeyFile)
-	os.WriteFile(caSelfSignedPrivateKeyFile, caSelfSignedPrivateKeyDER, 0777) // 将 DER 编码私钥写入文件
-
-	// 待签署证书及其私钥公钥==================================
-	sigeCert("lalala", ca, caSelfSignedPrivateKey, caSelfSigned)
-	sigeCert("lalala2", ca, caSelfSignedPrivateKey, caSelfSigned)
+	Der2PemPrivateKey(caSelfSignedPrivateKeyDER, caSelfSignedPrivateKeyFile) // 私钥写入文件
+	Der2PemCert(caSelfSigned, caSelfSignedFile)                              // 证书写入文件
 }
 
-func sigeCert(cn string, ca *x509.Certificate, caSelfSignedPrivateKey *sm2dilithium2hybrid.PrivateKey, caSelfSigned []byte) error {
+func sigeCert(cn string, ca *x509.Certificate, caSelfSignedPrivateKey *sm2dilithium2hybrid.PrivateKey) error {
 	cert := &x509.Certificate{
 		SerialNumber: big.NewInt(1658),
 		Subject: pkix.Name{
-			Country: []string{cn},
+			CommonName: cn,
 		},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(10, 0, 0),
@@ -81,10 +92,7 @@ func sigeCert(cn string, ca *x509.Certificate, caSelfSignedPrivateKey *sm2dilith
 		log.Println("create cert2 failed", err2)
 		return err2
 	}
-
 	certFile := cn + ".pem"
-	log.Println("write to", certFile)
-	os.WriteFile(certFile, certSigned, 0777) // cert 写入文件
 
 	certPrivateKeyFile := cn + ".key"
 	certPrivateKeyDER, err := x509.MarshalPKCS8PrivateKey(certPrivateKey) // 将私钥转换为 DER 编码格式
@@ -92,11 +100,9 @@ func sigeCert(cn string, ca *x509.Certificate, caSelfSignedPrivateKey *sm2dilith
 		log.Println("marshal pkcs8 failed", err)
 		return err
 	}
-	log.Println("write to", certPrivateKeyFile)
-	os.WriteFile(certPrivateKeyFile, certPrivateKeyDER, 0777) // 私钥写入文件
-	pem.Encode(os.Stdout, &pem.Block{Type: "PRIVATE KEY", Bytes: certPrivateKeyDER})
-	pem.Encode(os.Stdout, &pem.Block{Type: "CERTIFICATE", Bytes: certSigned})
-	ca_tr, err := x509.ParseCertificate(caSelfSigned)
+	Der2PemPrivateKey(certPrivateKeyDER, certPrivateKeyFile) // 私钥写入文件
+	Der2PemCert(certSigned, certFile)                        // 证书写入文件
+	ca_tr, err := x509.ParseCertificate(certSigned)
 
 	if err != nil {
 		log.Println("parse ca failed", err)
@@ -113,4 +119,56 @@ func sigeCert(cn string, ca *x509.Certificate, caSelfSignedPrivateKey *sm2dilith
 	err = cert_tr.CheckSignatureFrom(ca_tr)
 	log.Println("check signature", err)
 	return nil
+}
+
+func Der2PemCert(der []byte, pemFileName string) {
+	p := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	os.WriteFile(pemFileName, p, 0777)
+}
+
+func Der2PemPrivateKey(der []byte, pemFileName string) {
+	p := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})
+	os.WriteFile(pemFileName, p, 0777)
+}
+
+func ReadAndParseCert(pemFileName string) (*x509.Certificate, error) {
+	pemData, err := os.ReadFile(pemFileName)
+	if err != nil {
+		log.Println("read cert failed", err)
+		return nil, err
+	}
+	block, _ := pem.Decode(pemData)
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		log.Println("parse cert failed", err)
+		return nil, err
+	}
+	log.Println("parse cert success")
+	return cert, nil
+}
+
+func ReadAndParsePrivateKey(pemFileName string) (*sm2dilithium2hybrid.PrivateKey, error) {
+	pemData, err := os.ReadFile(pemFileName)
+	if err != nil {
+		log.Println("read private key failed", err)
+		return nil, err
+	}
+
+	block, _ := pem.Decode(pemData)
+	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		log.Println("parse private key failed", err)
+		return nil, err
+	}
+	log.Println("parse private key success")
+	return privateKey.(*sm2dilithium2hybrid.PrivateKey), nil
+}
+
+func ReadCert(pemFileName string) ([]byte, error) {
+	pemData, err := os.ReadFile(pemFileName)
+	if err != nil {
+
+		return nil, err
+	}
+	return pemData, nil
 }

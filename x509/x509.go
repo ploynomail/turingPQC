@@ -417,6 +417,7 @@ const (
 	SM2WithSM3
 	SM2WithSHA1
 	SM2WithSHA256
+	PureSm2Hybrid
 	PureSM2Dilithium2Hybrid
 )
 
@@ -464,6 +465,7 @@ const (
 	RainbowVCircumzenithal
 	RainbowVCompressed
 	Sm2
+	Sm2Hybrid
 	Sm2Dilithium2Hybrid
 )
 
@@ -492,6 +494,7 @@ var publicKeyAlgoName = [...]string{
 	SM2WithSM3:               "SM2-SM3",
 	SM2WithSHA1:              "SM2-SHA1",
 	SM2WithSHA256:            "SM2-SHA256",
+	Sm2Hybrid:                "SM2-Hybrid",
 	Sm2Dilithium2Hybrid:      "SM2-Dilithium2-Hybrid",
 }
 
@@ -655,6 +658,7 @@ var signatureAlgorithmDetails = []struct {
 	{SM2WithSM3, "SM2-SM3", oidSignatureSM2WithSM3, ECDSA, SM3},
 	{SM2WithSHA1, "SM2-SHA1", oidSignatureSM2WithSHA1, Sm2, SHA1},
 	{SM2WithSHA256, "SM2-SHA256", oidSignatureSM2WithSHA256, Sm2, SHA256},
+	{PureSm2Hybrid, "SM2-Hybrid", oidSignatureSm2Hybrid, Sm2Hybrid, Hash(0)},
 	{PureSM2Dilithium2Hybrid, "SM2-Dilithium2-Hybrid", oidSignatureSm2Dilithium2Hybrid, Sm2Dilithium2Hybrid, Hash(0)},
 	//	{SM3WithRSA, oidSignatureSM3WithRSA, RSA, SM3},
 }
@@ -730,7 +734,6 @@ func getSignatureAlgorithmFromAI(ai pkix.AlgorithmIdentifier) SignatureAlgorithm
 		params.TrailerField != 1 {
 		return UnknownSignatureAlgorithm
 	}
-
 	switch {
 	case params.Hash.Algorithm.Equal(oidSHA256) && params.SaltLength == 32:
 		return SHA256WithRSAPSS
@@ -826,6 +829,8 @@ func getPublicKeyAlgorithmFromOID(oid asn1.ObjectIdentifier) PublicKeyAlgorithm 
 		return RainbowVCircumzenithal
 	case oid.Equal(oidPublicKeyRainbowVCompressed):
 		return RainbowVCompressed
+	case oid.Equal(oidPublicKeySm2Hybrid):
+		return Sm2Hybrid
 	}
 	return UnknownPublicKeyAlgorithm
 }
@@ -1192,7 +1197,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		return InsecureAlgorithmError(algo)
 	case SM2WithSM3: // SM3WithRSA reserve
 		hashType = SM3
-	case PureSM2Dilithium2Hybrid:
+	case PureSM2Dilithium2Hybrid, PureSm2Hybrid:
 		hashType = Hash(0)
 	default:
 		return ErrUnsupportedAlgorithm
@@ -1206,7 +1211,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 	}
 	switch hashType {
 	case Hash(0):
-		if pubKeyAlgo != Sm2Dilithium2Hybrid && pubKeyAlgo != Sm2 && pubKeyAlgo != Ed25519 && pubKeyAlgo != Falcon512 && pubKeyAlgo != Falcon1024 && pubKeyAlgo != Dilithium2 && pubKeyAlgo != Dilithium3 && pubKeyAlgo != Dilithium5 && pubKeyAlgo != Dilithium2AES && pubKeyAlgo != Dilithium3AES && pubKeyAlgo != Dilithium5AES && pubKeyAlgo != RainbowIIIClassic && pubKeyAlgo != RainbowIIICircumzenithal && pubKeyAlgo != RainbowIIICompressed && pubKeyAlgo != RainbowVClassic && pubKeyAlgo != RainbowVCircumzenithal && pubKeyAlgo != RainbowVCompressed {
+		if pubKeyAlgo != Sm2Dilithium2Hybrid && pubKeyAlgo != Sm2Hybrid && pubKeyAlgo != Sm2 && pubKeyAlgo != Ed25519 && pubKeyAlgo != Falcon512 && pubKeyAlgo != Falcon1024 && pubKeyAlgo != Dilithium2 && pubKeyAlgo != Dilithium3 && pubKeyAlgo != Dilithium5 && pubKeyAlgo != Dilithium2AES && pubKeyAlgo != Dilithium3AES && pubKeyAlgo != Dilithium5AES && pubKeyAlgo != RainbowIIIClassic && pubKeyAlgo != RainbowIIICircumzenithal && pubKeyAlgo != RainbowIIICompressed && pubKeyAlgo != RainbowVClassic && pubKeyAlgo != RainbowVCircumzenithal && pubKeyAlgo != RainbowVCompressed {
 			return ErrUnsupportedAlgorithm
 		}
 	case MD5:
@@ -1417,7 +1422,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 
 		return
 	case *sm2dilithium2hybrid.PublicKey:
-		if pubKeyAlgo != Sm2Dilithium2Hybrid {
+		if pubKeyAlgo != Sm2Hybrid {
 			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
 		}
 		if !sm2dilithium2hybrid.Verify(pub, signed, signature) {
@@ -1989,7 +1994,10 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		}
 	case *sm2dilithium2hybrid.PublicKey:
 		pubType = Sm2Dilithium2Hybrid
-		sigAlgo.Algorithm = oidSignatureSm2Dilithium2Hybrid
+		sigAlgo.Algorithm = oidSignatureSm2Hybrid
+		oidBytes, _ := asn1.Marshal(oidSignatureSm2Dilithium2Hybrid)
+		rawValue := asn1.RawValue{FullBytes: oidBytes}
+		sigAlgo.Parameters = rawValue
 	default:
 		err = errors.New("x509: only RSA, ECDSA and Ed25519 keys supported")
 	}
@@ -2204,7 +2212,6 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 			return nil, fmt.Errorf("x509: signature over certificate returned by signer is invalid: %w", err)
 		}
 	}
-
 	return signedCert, nil
 }
 

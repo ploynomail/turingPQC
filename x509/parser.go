@@ -30,6 +30,7 @@ import (
 	falcon1024 "github.com/ploynomail/turingPQC/pqc/falcon/falcon1024"
 	falcon512 "github.com/ploynomail/turingPQC/pqc/falcon/falcon512"
 	"github.com/ploynomail/turingPQC/sm2"
+	sm2dilithium2hybrid "github.com/ploynomail/turingPQC/sm2_dilithium2_hybrid"
 
 	dilithium2 "github.com/ploynomail/turingPQC/pqc/dilithium/dilithium2"
 	dilithium2AES "github.com/ploynomail/turingPQC/pqc/dilithium/dilithium2AES"
@@ -251,7 +252,6 @@ func parseExtension(der cryptobyte.String) (pkix.Extension, error) {
 func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{}, error) {
 	// TODO: this function is based 1.14.10, not 1.17.6, will soon update later
 	asn1Data := keyData.PublicKey.RightAlign()
-
 	switch algo {
 	case RSA:
 		// RSA public keys must have a NULL in the parameters.
@@ -490,7 +490,24 @@ func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{
 			Y:     y,
 		}
 		return pub, nil
-
+	case Sm2Hybrid:
+		curve := sm2.P256Sm2()
+		x, y := elliptic.Unmarshal(curve, keyData.PublicKey.Bytes[:65])
+		sm2pub := sm2.PublicKey{
+			Curve: curve,
+			X:     x,
+			Y:     y,
+		}
+		if len(asn1Data[65:]) != dilithium2.PublicKeySize {
+			return nil, errors.New("x509: wrong dilithium2 public key size")
+		}
+		d2pub := make([]byte, dilithium2.PublicKeySize)
+		copy(d2pub, asn1Data)
+		pub := &sm2dilithium2hybrid.PublicKey{
+			SM2PublicKey:        sm2pub,
+			Dilithium2PublicKey: dilithium2.PublicKey{Pk: d2pub},
+		}
+		return pub, nil
 	default:
 		return nil, errors.New("x509: wrong public key")
 	}

@@ -238,7 +238,25 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 			Sk:        skBytes,
 			PublicKey: rainbowVCompressed.PublicKey{Pk: pkBytes},
 		}, nil
-
+	case privKey.Algo.Algorithm.Equal(oidPublicKeySm2Hybrid):
+		sm2PrivBytes := privKey.PrivateKey[:len(privKey.PrivateKey)-dilithium2.PrivateKeySize]
+		sm2Prvk, err := ParseSm2PrivateKey(sm2PrivBytes)
+		if err != nil {
+			return nil, errors.New("x509: failed to parse sm2 private key embedded in PKCS#8: " + err.Error())
+		}
+		skBytes := privKey.PrivateKey[len(privKey.PrivateKey)-dilithium2.PrivateKeySize:]
+		if len(skBytes) != dilithium2.PrivateKeySize {
+			return nil, errors.New("x509: invalid dilithium2 pk or sk size")
+		}
+		return &sm2dilithium2hybrid.PrivateKey{
+			SM2PrivateKey: *sm2Prvk,
+			Dilithium2PrivateKey: dilithium2.PrivateKey{
+				Sk: skBytes,
+			},
+			PublicKey: sm2dilithium2hybrid.PublicKey{
+				SM2PublicKey: sm2Prvk.PublicKey,
+			},
+		}, nil
 	default:
 		return nil, fmt.Errorf("x509: PKCS#8 wrapping contained private key with unknown algorithm: %v", privKey.Algo.Algorithm)
 	}
