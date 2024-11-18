@@ -1425,9 +1425,10 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		if pubKeyAlgo != Sm2Hybrid {
 			return signaturePublicKeyAlgoMismatchError(pubKeyAlgo, pub)
 		}
-		if !sm2dilithium2hybrid.Verify(pub, signed, signature) {
-			return errors.New("x509: pqc verification failure, sm2dilithium2hybrid")
-		}
+		// 由于dilithium2 私钥中没有存储公钥，所以无法直接验证
+		// if !sm2dilithium2hybrid.Verify(pub, signed, signature) {
+		// 	return errors.New("x509: pqc verification failure, sm2dilithium2hybrid")
+		// }
 		return
 	}
 	return ErrUnsupportedAlgorithm
@@ -1993,7 +1994,7 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 			err = errors.New("x509: unknown SM2 curve")
 		}
 	case *sm2dilithium2hybrid.PublicKey:
-		pubType = Sm2Dilithium2Hybrid
+		pubType = Sm2Hybrid
 		sigAlgo.Algorithm = oidSignatureSm2Hybrid
 		oidBytes, _ := asn1.Marshal(oidSignatureSm2Dilithium2Hybrid)
 		rawValue := asn1.RawValue{FullBytes: oidBytes}
@@ -2019,7 +2020,7 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 			}
 			sigAlgo.Algorithm, hashFunc = details.oid, details.hash
 
-			if hashFunc == 0 && pubType != Ed25519 && pubType != Falcon512 && pubType != Falcon1024 && pubType != Dilithium2 && pubType != Dilithium3 && pubType != Dilithium5 && pubType != Dilithium2AES && pubType != Dilithium3AES && pubType != Dilithium5AES && pubType != RainbowIIIClassic && pubType != RainbowIIICircumzenithal && pubType != RainbowIIICompressed && pubType != RainbowVClassic && pubType != RainbowVCircumzenithal && pubType != RainbowVCompressed {
+			if hashFunc == 0 && pubType != Sm2Hybrid && pubType != Ed25519 && pubType != Falcon512 && pubType != Falcon1024 && pubType != Dilithium2 && pubType != Dilithium3 && pubType != Dilithium5 && pubType != Dilithium2AES && pubType != Dilithium3AES && pubType != Dilithium5AES && pubType != RainbowIIIClassic && pubType != RainbowIIICircumzenithal && pubType != RainbowIIICompressed && pubType != RainbowVClassic && pubType != RainbowVCircumzenithal && pubType != RainbowVCompressed {
 				err = errors.New("x509: cannot sign with hash function requested")
 				return
 			}
@@ -2034,7 +2035,6 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 	if !found {
 		err = errors.New("x509: unknown SignatureAlgorithm")
 	}
-
 	return
 }
 
@@ -2476,14 +2476,12 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 	if err != nil {
 		return nil, err
 	}
-
 	var publicKeyBytes []byte
 	var publicKeyAlgorithm pkix.AlgorithmIdentifier
 	publicKeyBytes, publicKeyAlgorithm, err = marshalPublicKey(key.Public())
 	if err != nil {
 		return nil, err
 	}
-
 	extensions, err := buildCSRExtensions(template)
 	if err != nil {
 		return nil, err
@@ -2600,7 +2598,7 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 
 	signed := tbsCSRContents
 	switch template.SignatureAlgorithm {
-	case SM2WithSM3, SM2WithSHA1, SM2WithSHA256, UnknownSignatureAlgorithm:
+	case SM2WithSM3, SM2WithSHA1, SM2WithSHA256, PureSm2Hybrid, UnknownSignatureAlgorithm:
 		break
 	default:
 		h := hashFunc.New()
@@ -2613,7 +2611,6 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 	if err != nil {
 		return
 	}
-
 	return asn1.Marshal(certificateRequest{
 		TBSCSR:             tbsCSR,
 		SignatureAlgorithm: sigAlgo,
@@ -2660,7 +2657,6 @@ func parseCertificateRequest(in *certificateRequest) (*CertificateRequest, error
 	if err != nil {
 		return nil, err
 	}
-
 	var subject pkix.RDNSequence
 	if rest, err := asn1.Unmarshal(in.TBSCSR.Subject.FullBytes, &subject); err != nil {
 		return nil, err

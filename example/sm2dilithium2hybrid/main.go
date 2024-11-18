@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"log"
 	"math/big"
 	"os"
@@ -17,19 +18,21 @@ func main() {
 	// ca 证书
 	// selfSignCa()
 	// 待签署证书及其私钥公钥==================================
-	caSelfSignedPrivateKey, err := ReadAndParsePrivateKey("ca.key")
-	if err != nil {
-		log.Println("read ca private key failed", err)
-		return
-	}
-	caCert, err := ReadAndParseCert("ca.pem")
-	if err != nil {
-		log.Println("read ca cert failed", err)
-		return
-	}
-	sigeCert("198", caCert, caSelfSignedPrivateKey)
-	// sigeCert("197", ca, caSelfSignedPrivateKey, caSelfSigned)
-
+	// caSelfSignedPrivateKey, err := ReadAndParsePrivateKey("ca.key")
+	// if err != nil {
+	// 	log.Println("read ca private key failed", err)
+	// 	return
+	// }
+	// caCert, err := ReadAndParseCert("ca.pem")
+	// if err != nil {
+	// 	log.Println("read ca cert failed", err)
+	// 	return
+	// }
+	// sigeCert("198", caCert, caSelfSignedPrivateKey)
+	GenPrivateKey()
+	CreateCSR()
+	ParseCSR()
+	SigeCertFormCSR()
 }
 
 func selfSignCa() {
@@ -102,7 +105,13 @@ func sigeCert(cn string, ca *x509.Certificate, caSelfSignedPrivateKey *sm2dilith
 	}
 	Der2PemPrivateKey(certPrivateKeyDER, certPrivateKeyFile) // 私钥写入文件
 	Der2PemCert(certSigned, certFile)                        // 证书写入文件
-	ca_tr, err := x509.ParseCertificate(certSigned)
+
+	// 验证签名
+	caCert, err := ReadCert2Der("ca.pem")
+	if err != nil {
+		log.Println("read ca cert failed", err)
+	}
+	ca_tr, err := x509.ParseCertificate(caCert)
 
 	if err != nil {
 		log.Println("parse ca failed", err)
@@ -171,4 +180,131 @@ func ReadCert(pemFileName string) ([]byte, error) {
 		return nil, err
 	}
 	return pemData, nil
+}
+
+func ReadCert2Der(pemFileName string) ([]byte, error) {
+	pemData, err := os.ReadFile(pemFileName)
+	if err != nil {
+		return nil, err
+	}
+	block, _ := pem.Decode(pemData)
+	return block.Bytes, nil
+}
+
+func GenPrivateKey() {
+	privateKey, _ := sm2dilithium2hybrid.GenerateKey(rand.Reader)
+	privateKeyDER, _ := x509.MarshalPKCS8PrivateKey(privateKey)
+	Der2PemPrivateKey(privateKeyDER, "mycompany-private.key")
+}
+
+func CreateCSR() {
+
+	privateKey, _ := sm2dilithium2hybrid.GenerateKey(rand.Reader)
+	// 创建CSR模板
+	template := x509.CertificateRequest{
+		Subject: pkix.Name{
+			Organization:       []string{"mycompany"},
+			OrganizationalUnit: []string{"IT Department"},
+		},
+		SignatureAlgorithm: x509.PureSm2Hybrid,
+	}
+
+	// 创建CSR
+	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, &template, privateKey)
+	if err != nil {
+		panic(err)
+	}
+
+	// 将CSR序列化为PEM格式
+	csrPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE REQUEST",
+		Bytes: csrBytes,
+	})
+
+	// 将CSR写入文件
+	err = os.WriteFile("mycompany.csr", csrPEM, 0644)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func ParseCSR() {
+	// 从文件中读取CSR
+	csrPEM, err := os.ReadFile("mycompany.csr")
+	if err != nil {
+		panic(err)
+	}
+
+	// 解码PEM格式的CSR
+	block, _ := pem.Decode(csrPEM)
+
+	// 解析CSR
+	csr, err := x509.ParseCertificateRequest(block.Bytes)
+	if err != nil {
+		panic(err)
+	}
+
+	// 输出CSR信息
+	fmt.Printf("Subject: %v\n", csr.Subject)
+	fmt.Printf("Signature Algorithm: %v\n", csr.SignatureAlgorithm)
+}
+
+func SigeCertFormCSR() {
+	// 读取CA证书
+	caCertPEM, err := os.ReadFile("ca.pem")
+	if err != nil {
+		panic(err)
+	}
+	caCertBlock, _ := pem.Decode(caCertPEM)
+	caCert, err := x509.ParseCertificate(caCertBlock.Bytes)
+	if err != nil {
+		panic(err)
+	}
+
+	// 读取CA私钥
+	caKeyPEM, err := os.ReadFile("ca.key")
+	if err != nil {
+		panic(err)
+	}
+	caKeyBlock, _ := pem.Decode(caKeyPEM)
+	caKey, err := x509.ParsePKCS8PrivateKey(caKeyBlock.Bytes)
+	if err != nil {
+		panic(err)
+	}
+	// 读取CSR
+	csrPEM, err := os.ReadFile("mycompany.csr")
+	if err != nil {
+		panic(err)
+	}
+	csrBlock, _ := pem.Decode(csrPEM)
+	csr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
+	if err != nil {
+		panic(err)
+	}
+	cert := &x509.Certificate{
+		SerialNumber: big.NewInt(1658),
+		Subject:      csr.Subject,
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(10, 0, 0),
+		SubjectKeyId: []byte{1, 2, 3, 4, 6},
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageContentCommitment,
+	}
+	// 生成证书
+	certBytes, err := x509.CreateCertificate(rand.Reader, cert, caCert, csr.PublicKey, caKey)
+	if err != nil {
+		panic(err)
+	}
+
+	// 将证书序列化为PEM格式
+	certPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certBytes,
+	})
+
+	// 将证书写入文件
+	err = os.WriteFile("mycompany.pem", certPEM, 0644)
+	if err != nil {
+		panic(err)
+	}
 }
