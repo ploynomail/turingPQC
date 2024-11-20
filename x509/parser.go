@@ -502,7 +502,7 @@ func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{
 			return nil, errors.New("x509: wrong dilithium2 public key size")
 		}
 		d2pub := make([]byte, dilithium2.PublicKeySize)
-		copy(d2pub, asn1Data)
+		copy(d2pub, asn1Data[65:])
 		pub := &sm2dilithium2hybrid.PublicKey{
 			SM2PublicKey:        sm2pub,
 			Dilithium2PublicKey: dilithium2.PublicKey{Pk: d2pub},

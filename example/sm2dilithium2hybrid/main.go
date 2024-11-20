@@ -110,26 +110,26 @@ func SigeCert(cn string, ca *x509.Certificate, caSelfSignedPrivateKey *sm2dilith
 	Der2PemCert(certSigned, certFile)                        // 证书写入文件
 
 	// 验证签名
-	// caCert, err := ReadCert2Der("ca.pem")
-	// if err != nil {
-	// 	log.Println("read ca cert failed", err)
-	// }
-	// ca_tr, err := x509.ParseCertificate(caCert)
+	caCert, err := ReadCert2Der("ca.pem")
+	if err != nil {
+		log.Println("read ca cert failed", err)
+	}
+	ca_tr, err := x509.ParseCertificate(caCert)
 
-	// if err != nil {
-	// 	log.Println("parse ca failed", err)
-	// 	return err
-	// }
+	if err != nil {
+		log.Println("parse ca failed", err)
+		return err
+	}
 
-	// cert_tr, err := x509.ParseCertificate(certSigned)
+	cert_tr, err := x509.ParseCertificate(certSigned)
 
-	// if err != nil {
-	// 	log.Println("parse cert failed", err)
-	// 	return err
-	// }
+	if err != nil {
+		log.Println("parse cert failed", err)
+		return err
+	}
 
-	// err = cert_tr.CheckSignatureFrom(ca_tr)
-	// log.Println("check signature", err)
+	err = cert_tr.CheckSignatureFrom(ca_tr)
+	log.Println("check signature", err)
 	return nil
 }
 
@@ -214,7 +214,6 @@ func CreateCSR(id string) {
 		},
 		SignatureAlgorithm: x509.PureSm2Hybrid,
 	}
-
 	// 创建CSR
 	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, &template, privateKey)
 	if err != nil {
