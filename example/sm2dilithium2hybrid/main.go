@@ -16,7 +16,7 @@ import (
 
 func main() {
 	// ca 证书
-	// selfSignCa()
+	// SelfSignCa()
 	// 待签署证书及其私钥公钥==================================
 	// caSelfSignedPrivateKey, err := ReadAndParsePrivateKey("ca.key")
 	// if err != nil {
@@ -28,14 +28,17 @@ func main() {
 	// 	log.Println("read ca cert failed", err)
 	// 	return
 	// }
-	// sigeCert("198", caCert, caSelfSignedPrivateKey)
-	GenPrivateKey()
-	CreateCSR()
-	ParseCSR()
-	SigeCertFormCSR()
+	// SigeCert("7549d76e-82b7-4bc0-a990-a5bc1a0af36b", caCert, caSelfSignedPrivateKey)
+	// SigeCert("e963dbc5-7319-44d1-a071-8e6eef321747", caCert, caSelfSignedPrivateKey)
+	CreateCSR("7549d76e-82b7-4bc0-a990-a5bc1a0af36b")
+	ParseCSR("7549d76e-82b7-4bc0-a990-a5bc1a0af36b")
+	SigeCertFormCSR("7549d76e-82b7-4bc0-a990-a5bc1a0af36b")
+	CreateCSR("e963dbc5-7319-44d1-a071-8e6eef321747")
+	ParseCSR("e963dbc5-7319-44d1-a071-8e6eef321747")
+	SigeCertFormCSR("e963dbc5-7319-44d1-a071-8e6eef321747")
 }
 
-func selfSignCa() {
+func SelfSignCa() {
 	ca := &x509.Certificate{
 		SerialNumber: big.NewInt(1650),
 		Subject: pkix.Name{
@@ -74,7 +77,7 @@ func selfSignCa() {
 	Der2PemCert(caSelfSigned, caSelfSignedFile)                              // 证书写入文件
 }
 
-func sigeCert(cn string, ca *x509.Certificate, caSelfSignedPrivateKey *sm2dilithium2hybrid.PrivateKey) error {
+func SigeCert(cn string, ca *x509.Certificate, caSelfSignedPrivateKey *sm2dilithium2hybrid.PrivateKey) error {
 	cert := &x509.Certificate{
 		SerialNumber: big.NewInt(1658),
 		Subject: pkix.Name{
@@ -107,26 +110,26 @@ func sigeCert(cn string, ca *x509.Certificate, caSelfSignedPrivateKey *sm2dilith
 	Der2PemCert(certSigned, certFile)                        // 证书写入文件
 
 	// 验证签名
-	caCert, err := ReadCert2Der("ca.pem")
-	if err != nil {
-		log.Println("read ca cert failed", err)
-	}
-	ca_tr, err := x509.ParseCertificate(caCert)
+	// caCert, err := ReadCert2Der("ca.pem")
+	// if err != nil {
+	// 	log.Println("read ca cert failed", err)
+	// }
+	// ca_tr, err := x509.ParseCertificate(caCert)
 
-	if err != nil {
-		log.Println("parse ca failed", err)
-		return err
-	}
+	// if err != nil {
+	// 	log.Println("parse ca failed", err)
+	// 	return err
+	// }
 
-	cert_tr, err := x509.ParseCertificate(certSigned)
+	// cert_tr, err := x509.ParseCertificate(certSigned)
 
-	if err != nil {
-		log.Println("parse cert failed", err)
-		return err
-	}
+	// if err != nil {
+	// 	log.Println("parse cert failed", err)
+	// 	return err
+	// }
 
-	err = cert_tr.CheckSignatureFrom(ca_tr)
-	log.Println("check signature", err)
+	// err = cert_tr.CheckSignatureFrom(ca_tr)
+	// log.Println("check signature", err)
 	return nil
 }
 
@@ -197,14 +200,17 @@ func GenPrivateKey() {
 	Der2PemPrivateKey(privateKeyDER, "mycompany-private.key")
 }
 
-func CreateCSR() {
-
+func CreateCSR(id string) {
+	// 生成私钥
+	privateKeyPath := fmt.Sprintf("%s.key", id)
 	privateKey, _ := sm2dilithium2hybrid.GenerateKey(rand.Reader)
+	privateKeyDER, _ := x509.MarshalPKCS8PrivateKey(privateKey)
+	p := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privateKeyDER})
+	os.WriteFile(privateKeyPath, p, 0777)
 	// 创建CSR模板
 	template := x509.CertificateRequest{
 		Subject: pkix.Name{
-			Organization:       []string{"mycompany"},
-			OrganizationalUnit: []string{"IT Department"},
+			CommonName: id,
 		},
 		SignatureAlgorithm: x509.PureSm2Hybrid,
 	}
@@ -220,17 +226,18 @@ func CreateCSR() {
 		Type:  "CERTIFICATE REQUEST",
 		Bytes: csrBytes,
 	})
-
+	csrPath := fmt.Sprintf("%s.csr", id)
 	// 将CSR写入文件
-	err = os.WriteFile("mycompany.csr", csrPEM, 0644)
+	err = os.WriteFile(csrPath, csrPEM, 0644)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func ParseCSR() {
+func ParseCSR(id string) {
+	csrPath := fmt.Sprintf("%s.csr", id)
 	// 从文件中读取CSR
-	csrPEM, err := os.ReadFile("mycompany.csr")
+	csrPEM, err := os.ReadFile(csrPath)
 	if err != nil {
 		panic(err)
 	}
@@ -243,13 +250,12 @@ func ParseCSR() {
 	if err != nil {
 		panic(err)
 	}
-
 	// 输出CSR信息
 	fmt.Printf("Subject: %v\n", csr.Subject)
 	fmt.Printf("Signature Algorithm: %v\n", csr.SignatureAlgorithm)
 }
 
-func SigeCertFormCSR() {
+func SigeCertFormCSR(id string) {
 	// 读取CA证书
 	caCertPEM, err := os.ReadFile("ca.pem")
 	if err != nil {
@@ -272,7 +278,8 @@ func SigeCertFormCSR() {
 		panic(err)
 	}
 	// 读取CSR
-	csrPEM, err := os.ReadFile("mycompany.csr")
+	csrPath := fmt.Sprintf("%s.csr", id)
+	csrPEM, err := os.ReadFile(csrPath)
 	if err != nil {
 		panic(err)
 	}
@@ -303,7 +310,8 @@ func SigeCertFormCSR() {
 	})
 
 	// 将证书写入文件
-	err = os.WriteFile("mycompany.pem", certPEM, 0644)
+	pemPath := fmt.Sprintf("%s.pem", id)
+	err = os.WriteFile(pemPath, certPEM, 0644)
 	if err != nil {
 		panic(err)
 	}
