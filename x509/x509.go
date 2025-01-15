@@ -655,7 +655,7 @@ var signatureAlgorithmDetails = []struct {
 	{PureRainbowVClassic, "RainbowVClassic", oidSignatureRainbowVClassic, RainbowVClassic, Hash(0)},
 	{PureRainbowVCircumzenithal, "RainbowVCircumzenithal", oidSignatureRainbowVCircumzenithal, RainbowVCircumzenithal, Hash(0)},
 	{PureRainbowVCompressed, "RainbowVCompressed", oidSignatureRainbowVCompressed, RainbowVCompressed, Hash(0)},
-	{SM2WithSM3, "SM2-SM3", oidSignatureSM2WithSM3, ECDSA, SM3},
+	{SM2WithSM3, "SM2-SM3", oidSignatureSM2WithSM3, ECDSA, Hash(0)},
 	{SM2WithSHA1, "SM2-SHA1", oidSignatureSM2WithSHA1, Sm2, SHA1},
 	{SM2WithSHA256, "SM2-SHA256", oidSignatureSM2WithSHA256, Sm2, SHA256},
 	{PureSm2Hybrid, "SM2-Hybrid", oidSignatureSm2Hybrid, Sm2Hybrid, Hash(0)},
@@ -1196,7 +1196,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 	case MD2WithRSA, MD5WithRSA:
 		return InsecureAlgorithmError(algo)
 	case SM2WithSM3: // SM3WithRSA reserve
-		hashType = SM3
+		hashType = Hash(0)
 	case PureSM2Dilithium2Hybrid, PureSm2Hybrid, PureDilithium2:
 		hashType = Hash(0)
 	default:
@@ -1211,7 +1211,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 	}
 	switch hashType {
 	case Hash(0):
-		if pubKeyAlgo != Sm2Dilithium2Hybrid && pubKeyAlgo != Sm2Hybrid && pubKeyAlgo != Sm2 && pubKeyAlgo != Ed25519 && pubKeyAlgo != Falcon512 && pubKeyAlgo != Falcon1024 && pubKeyAlgo != Dilithium2 && pubKeyAlgo != Dilithium3 && pubKeyAlgo != Dilithium5 && pubKeyAlgo != Dilithium2AES && pubKeyAlgo != Dilithium3AES && pubKeyAlgo != Dilithium5AES && pubKeyAlgo != RainbowIIIClassic && pubKeyAlgo != RainbowIIICircumzenithal && pubKeyAlgo != RainbowIIICompressed && pubKeyAlgo != RainbowVClassic && pubKeyAlgo != RainbowVCircumzenithal && pubKeyAlgo != RainbowVCompressed {
+		if pubKeyAlgo != Sm2Dilithium2Hybrid && pubKeyAlgo != ECDSA && pubKeyAlgo != Sm2Hybrid && pubKeyAlgo != Sm2 && pubKeyAlgo != Ed25519 && pubKeyAlgo != Falcon512 && pubKeyAlgo != Falcon1024 && pubKeyAlgo != Dilithium2 && pubKeyAlgo != Dilithium3 && pubKeyAlgo != Dilithium5 && pubKeyAlgo != Dilithium2AES && pubKeyAlgo != Dilithium3AES && pubKeyAlgo != Dilithium5AES && pubKeyAlgo != RainbowIIIClassic && pubKeyAlgo != RainbowIIICircumzenithal && pubKeyAlgo != RainbowIIICompressed && pubKeyAlgo != RainbowVClassic && pubKeyAlgo != RainbowVCircumzenithal && pubKeyAlgo != RainbowVCompressed {
 			return ErrUnsupportedAlgorithm
 		}
 	case MD5:
@@ -1254,11 +1254,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 				X:     pub.X,
 				Y:     pub.Y,
 			}
-			// if !sm2.Sm2Verify(sm2pub, signed, nil, ecdsaSig.R, ecdsaSig.S) {
-			// 	return errors.New("x509: SM2 verification failure")
-			// }
 			if !sm2pub.Verify(signed, signature) {
-				fmt.Println("sm2pub.Verify failed")
 				return errors.New("x509: sm2 verification failure")
 			}
 		default:
@@ -1411,11 +1407,8 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 				X:     pub.X,
 				Y:     pub.Y,
 			}
-			// if !sm2.Sm2Verify(sm2pub, signed, nil, ecdsaSig.R, ecdsaSig.S) {
-			// 	return errors.New("x509: SM2 verification failure")
-			// }
+
 			if !sm2pub.Verify(signed, signature) {
-				fmt.Println("sm2pub.Verify failed")
 				return errors.New("x509: sm2 verification failure")
 			}
 		}
@@ -1988,7 +1981,6 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		pubType = ECDSA
 		switch pub.Curve {
 		case sm2.P256Sm2():
-			hashFunc = SM3
 			sigAlgo.Algorithm = oidSignatureSM2WithSM3
 		default:
 			err = errors.New("x509: unknown SM2 curve")
@@ -2019,8 +2011,7 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 				return
 			}
 			sigAlgo.Algorithm, hashFunc = details.oid, details.hash
-
-			if hashFunc == 0 && pubType != Sm2Hybrid && pubType != Ed25519 && pubType != Falcon512 && pubType != Falcon1024 && pubType != Dilithium2 && pubType != Dilithium3 && pubType != Dilithium5 && pubType != Dilithium2AES && pubType != Dilithium3AES && pubType != Dilithium5AES && pubType != RainbowIIIClassic && pubType != RainbowIIICircumzenithal && pubType != RainbowIIICompressed && pubType != RainbowVClassic && pubType != RainbowVCircumzenithal && pubType != RainbowVCompressed {
+			if hashFunc == 0 && pubType != Sm2Hybrid && pubType != ECDSA && pubType != Ed25519 && pubType != Falcon512 && pubType != Falcon1024 && pubType != Dilithium2 && pubType != Dilithium3 && pubType != Dilithium5 && pubType != Dilithium2AES && pubType != Dilithium3AES && pubType != Dilithium5AES && pubType != RainbowIIIClassic && pubType != RainbowIIICircumzenithal && pubType != RainbowIIICompressed && pubType != RainbowVClassic && pubType != RainbowVCircumzenithal && pubType != RainbowVCompressed {
 				err = errors.New("x509: cannot sign with hash function requested")
 				return
 			}
@@ -2181,7 +2172,6 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 		h.Write(signed)
 		signed = h.Sum(nil)
 	}
-
 	var signerOpts crypto.SignerOpts = hashFunc
 	if template.SignatureAlgorithm != 0 && template.SignatureAlgorithm.isRSAPSS() {
 		signerOpts = &rsa.PSSOptions{
