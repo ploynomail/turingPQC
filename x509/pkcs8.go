@@ -77,6 +77,9 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 		if _, err := asn1.Unmarshal(bytes, namedCurveOID); err != nil {
 			namedCurveOID = nil
 		}
+		if namedCurveOID.Equal(oidNamedCurveP256SM2) {
+			return ParseSm2PrivateKey(privKey.PrivateKey)
+		}
 		key, err = parseECPrivateKey(namedCurveOID, privKey.PrivateKey)
 		if err != nil {
 			return nil, errors.New("x509: failed to parse EC private key embedded in PKCS#8: " + err.Error())
@@ -238,6 +241,8 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 			Sk:        skBytes,
 			PublicKey: rainbowVCompressed.PublicKey{Pk: pkBytes},
 		}, nil
+	case privKey.Algo.Algorithm.Equal(oidPublicKeySM2):
+		return ParseSm2PrivateKey(privKey.PrivateKey)
 	case privKey.Algo.Algorithm.Equal(oidPublicKeySm2Hybrid):
 		sm2PrivBytes := privKey.PrivateKey[:len(privKey.PrivateKey)-dilithium2.PrivateKeySize]
 		sm2Prvk, err := ParseSm2PrivateKey(sm2PrivBytes)
@@ -426,18 +431,23 @@ func MarshalPKCS8PrivateKey(key interface{}) ([]byte, error) {
 		}
 		privKey.PrivateKey = k.Sk
 	case *sm2.PrivateKey:
-		oidBytes, err := asn1.Marshal(oidPublicKeySM2)
-		if err != nil {
-			return nil, errors.New("x509: failed to marshal curve OID: " + err.Error())
-		}
+		var r pkcs8
+		var priv sm2PrivateKey
+		var algo pkix.AlgorithmIdentifier
 
-		privKey.Algo = pkix.AlgorithmIdentifier{
-			Algorithm: oidPublicKeyECDSA,
-			Parameters: asn1.RawValue{
-				FullBytes: oidBytes,
-			},
-		}
-		privKey.PrivateKey = k.D.Bytes()
+		algo.Algorithm = oidSM2
+		algo.Parameters.Class = 0
+		algo.Parameters.Tag = 6
+		algo.Parameters.IsCompound = false
+		algo.Parameters.FullBytes = []byte{6, 8, 42, 129, 28, 207, 85, 1, 130, 45} // asn1.Marshal(asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301})
+		priv.Version = 1
+		priv.NamedCurveOID = oidNamedCurveP256SM2
+		priv.PublicKey = asn1.BitString{Bytes: elliptic.Marshal(k.Curve, k.X, k.Y)}
+		priv.PrivateKey = k.D.Bytes()
+		r.Version = 0
+		r.Algo = algo
+		r.PrivateKey, _ = asn1.Marshal(priv)
+		privKey = r
 	case *sm2dilithium2hybrid.PrivateKey:
 		oidBytes, err := asn1.Marshal(oidPublicKeySm2Dilithium2Hybrid)
 		if err != nil {

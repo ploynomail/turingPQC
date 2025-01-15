@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"log"
 	"math/big"
 	"os"
@@ -14,13 +15,24 @@ import (
 )
 
 func main() {
+	// 生成 自签CA 证书
+	GenerateSelfSignerCACert()
+	CreateCSR("test")
+	ParseCSR("test")
+	SigeCertFormCSR("test")
+}
+
+func GenerateSelfSignerCACert() {
 	// ca 证书
 	ca := &x509.Certificate{
 		SerialNumber: big.NewInt(1653),
 		Subject: pkix.Name{
 			Country:            []string{"China"},
-			Organization:       []string{""},
-			OrganizationalUnit: []string{""},
+			Province:           []string{"Shanghai"},
+			Locality:           []string{"Shanghai"},
+			Organization:       []string{"TuringQ"},
+			OrganizationalUnit: []string{"DevOps"},
+			CommonName:         "TuringQ DevOps CA",
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(10, 0, 0),
@@ -42,72 +54,136 @@ func main() {
 
 	caSelfSignedFile := "ca.pem"
 	log.Println("write to", caSelfSignedFile)
-	os.WriteFile(caSelfSignedFile, caSelfSigned, 0777) // 将自签证书写入文件
+	caSelfSignedPem := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caSelfSigned})
+	os.WriteFile(caSelfSignedFile, caSelfSignedPem, 0777) // 将自签证书写入文件
 
 	caSelfSignedPrivateKeyFile := "ca.key"
 
-	caSelfSignedPrivateKeyDER, err := x509.MarshalSm2PrivateKey(caSelfSignedPrivateKey, nil) // 将私钥转换为 DER 格式
+	caSelfSignedPrivateKeyDER, err := x509.MarshalPKCS8PrivateKey(caSelfSignedPrivateKey) // 将私钥转换为 DER 格式
+	// caSelfSignedPrivateKeyDER, err := x509.MarshalSm2PrivateKey(caSelfSignedPrivateKey, nil) // 将私钥转换为 DER 格式
 	if err != nil {
 		log.Println("marshal pkcs8 failed", err)
 		return
 	}
-	pem.Encode(os.Stdout, &pem.Block{Type: "PRIVATE KEY", Bytes: caSelfSignedPrivateKeyDER})
-	pem.Encode(os.Stdout, &pem.Block{Type: "CERTIFICATE", Bytes: caSelfSigned})
 	log.Println("write to", caSelfSignedPrivateKeyFile)
-	os.WriteFile(caSelfSignedPrivateKeyFile, caSelfSignedPrivateKeyDER, 0777) // 将 DER 编码私钥写入文件
+	caSelfSignedPrivateKeyPem := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: caSelfSignedPrivateKeyDER})
+	os.WriteFile(caSelfSignedPrivateKeyFile, caSelfSignedPrivateKeyPem, 0777) // 将 DER 编码私钥写入文件
+}
 
-	// 待签署证书及其私钥公钥
+func CreateCSR(id string) {
+	// 生成私钥
+	privateKeyPath := fmt.Sprintf("%s.key", id)
+	privateKey, _ := sm2.GenerateKey(rand.Reader)
+	privateKeyDER, _ := x509.MarshalPKCS8PrivateKey(privateKey)
+	p := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privateKeyDER})
+	os.WriteFile(privateKeyPath, p, 0777)
+	// 创建CSR模板
+	template := x509.CertificateRequest{
+		Subject: pkix.Name{
+			CommonName: id,
+		},
+		SignatureAlgorithm: x509.SM2WithSM3,
+	}
+	// 创建CSR
+	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, &template, privateKey)
+	if err != nil {
+		panic(err)
+	}
+
+	// 将CSR序列化为PEM格式
+	csrPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE REQUEST",
+		Bytes: csrBytes,
+	})
+	csrPath := fmt.Sprintf("%s.csr", id)
+	// 将CSR写入文件
+	err = os.WriteFile(csrPath, csrPEM, 0644)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func ParseCSR(id string) {
+	csrPath := fmt.Sprintf("%s.csr", id)
+	// 从文件中读取CSR
+	csrPEM, err := os.ReadFile(csrPath)
+	if err != nil {
+		panic(err)
+	}
+
+	// 解码PEM格式的CSR
+	block, _ := pem.Decode(csrPEM)
+
+	// 解析CSR
+	csr, err := x509.ParseCertificateRequest(block.Bytes)
+	if err != nil {
+		panic(err)
+	}
+	// 输出CSR信息
+	fmt.Printf("Subject: %v\n", csr.Subject)
+	fmt.Printf("Signature Algorithm: %v\n", csr.SignatureAlgorithm)
+}
+
+func SigeCertFormCSR(id string) {
+	// 读取CA证书
+	caCertPEM, err := os.ReadFile("ca.pem")
+	if err != nil {
+		panic(err)
+	}
+	caCertBlock, _ := pem.Decode(caCertPEM)
+	caCert, err := x509.ParseCertificate(caCertBlock.Bytes)
+	if err != nil {
+		panic(err)
+	}
+
+	// 读取CA私钥
+	caKeyPEM, err := os.ReadFile("ca.key")
+	if err != nil {
+		panic(err)
+	}
+	caKeyBlock, _ := pem.Decode(caKeyPEM)
+	caKey, err := x509.ParsePKCS8PrivateKey(caKeyBlock.Bytes)
+	// caKey, err := x509.ParsePKCS8UnecryptedPrivateKey(caKeyBlock.Bytes)
+
+	if err != nil {
+		panic(err)
+	}
+	// 读取CSR
+	csrPath := fmt.Sprintf("%s.csr", id)
+	csrPEM, err := os.ReadFile(csrPath)
+	if err != nil {
+		panic(err)
+	}
+	csrBlock, _ := pem.Decode(csrPEM)
+	csr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
+	if err != nil {
+		panic(err)
+	}
 	cert := &x509.Certificate{
 		SerialNumber: big.NewInt(1658),
-		Subject: pkix.Name{
-			Country:            []string{"China"},
-			Organization:       []string{""},
-			OrganizationalUnit: []string{""},
-		},
+		Subject:      csr.Subject,
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(10, 0, 0),
 		SubjectKeyId: []byte{1, 2, 3, 4, 6},
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageContentCommitment,
 	}
-	certPrivateKey, _ := sm2.GenerateKey(rand.Reader)
-	certPublicKey := &certPrivateKey.PublicKey
-
-	// 使用自签CA 对 证书签署
-	certSigned, err2 := x509.CreateCertificate(rand.Reader, cert, ca, certPublicKey, caSelfSignedPrivateKey)
-	if err2 != nil {
-		log.Println("create cert2 failed", err2)
-		return
-	}
-
-	certFile := "cert.pem"
-	log.Println("write to", certFile)
-	os.WriteFile(certFile, certSigned, 0777) // cert 写入文件
-
-	certPrivateKeyFile := "cert.key"
-	certPrivateKeyDER, err := x509.MarshalPKCS8PrivateKey(certPrivateKey) // 将私钥转换为 DER 编码格式
+	// 生成证书
+	certBytes, err := x509.CreateCertificate(rand.Reader, cert, caCert, csr.PublicKey, caKey)
 	if err != nil {
-		log.Println("marshal pkcs8 failed", err)
-		return
+		panic(err)
 	}
-	log.Println("write to", certPrivateKeyFile)
-	os.WriteFile(certPrivateKeyFile, certPrivateKeyDER, 0777) // 私钥写入文件
-	pem.Encode(os.Stdout, &pem.Block{Type: "PRIVATE KEY", Bytes: certPrivateKeyDER})
-	pem.Encode(os.Stdout, &pem.Block{Type: "CERTIFICATE", Bytes: certSigned})
-	ca_tr, err := x509.ParseCertificate(caSelfSigned)
 
+	// 将证书序列化为PEM格式
+	certPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certBytes,
+	})
+
+	// 将证书写入文件
+	pemPath := fmt.Sprintf("%s.pem", id)
+	err = os.WriteFile(pemPath, certPEM, 0644)
 	if err != nil {
-		log.Println("parse ca failed", err)
-		return
+		panic(err)
 	}
-
-	cert_tr, err := x509.ParseCertificate(certSigned)
-
-	if err != nil {
-		log.Println("parse cert failed", err)
-		return
-	}
-
-	err = cert_tr.CheckSignatureFrom(ca_tr)
-	log.Println("check signature", err)
 }

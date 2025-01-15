@@ -1197,7 +1197,7 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 		return InsecureAlgorithmError(algo)
 	case SM2WithSM3: // SM3WithRSA reserve
 		hashType = SM3
-	case PureSM2Dilithium2Hybrid, PureSm2Hybrid:
+	case PureSM2Dilithium2Hybrid, PureSm2Hybrid, PureDilithium2:
 		hashType = Hash(0)
 	default:
 		return ErrUnsupportedAlgorithm
@@ -2598,7 +2598,7 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 
 	signed := tbsCSRContents
 	switch template.SignatureAlgorithm {
-	case SM2WithSM3, SM2WithSHA1, SM2WithSHA256, PureSm2Hybrid, UnknownSignatureAlgorithm:
+	case SM2WithSM3, SM2WithSHA1, SM2WithSHA256, PureSm2Hybrid, UnknownSignatureAlgorithm, PureDilithium2:
 		break
 	default:
 		h := hashFunc.New()
