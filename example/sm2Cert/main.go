@@ -16,10 +16,11 @@ import (
 
 func main() {
 	// 生成 自签CA 证书
-	GenerateSelfSignerCACert()
-	CreateCSR("test")
-	ParseCSR("test")
-	SigeCertFormCSR("test")
+	// GenerateSelfSignerCACert()
+	// CreateCSR("test")
+	// ParseCSR("test")
+	// SigeCertFormCSR("test")
+	ParseCertificate("a.pem")
 }
 
 func GenerateSelfSignerCACert() {
@@ -186,4 +187,26 @@ func SigeCertFormCSR(id string) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func ParseCertificate(certPath string) {
+	// 读取证书
+	certPEM, err := os.ReadFile(certPath)
+	if err != nil {
+		panic(err)
+	}
+
+	// 解码PEM格式的证书
+	block, _ := pem.Decode(certPEM)
+
+	// 解析证书
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		panic(err)
+	}
+
+	// 输出证书信息
+	fmt.Printf("Subject: %v\n", cert.Subject)
+	fmt.Printf("Issuer: %v\n", cert.Issuer)
+	fmt.Printf("Signature Algorithm: %v\n", cert.SignatureAlgorithm)
 }
