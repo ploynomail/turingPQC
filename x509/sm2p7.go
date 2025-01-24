@@ -21,13 +21,6 @@ type SM2EnvelopedKey struct {
 	SM2EncryptedPrivateKey asn1.BitString           `asn1:"explicit,tag:3"`
 }
 
-type SM2EnvelopedKeyBin struct {
-	SymAlgID               []byte
-	SymEncryptedKey        []byte
-	SM2PublicKey           []byte
-	SM2EncryptedPrivateKey []byte
-}
-
 // 生成对称密钥
 func generateSymmetricKey() ([]byte, error) {
 	key := make([]byte, 16)
