@@ -68,7 +68,7 @@ func decryptWithSM2PrivateKey(privateKey *sm2.PrivateKey, ciphertext []byte) ([]
 }
 
 // 生成数字信封
-func GenerateSM2EnvelopedKey(sm2PrivateKey *sm2.PrivateKey, sm2PublicKey *sm2.PublicKey) (*SM2EnvelopedKey, error) {
+func GenerateSM2EnvelopedKey(sm2PrivateKey *sm2.PrivateKey, sm2PublicKey *sm2.PublicKey) ([]byte, error) {
 	// 1. 生成对称密钥
 	symmetricKey, err := generateSymmetricKey()
 	if err != nil {
@@ -100,7 +100,7 @@ func GenerateSM2EnvelopedKey(sm2PrivateKey *sm2.PrivateKey, sm2PublicKey *sm2.Pu
 		SM2PublicKey:           sm2PublicKeyBytes,
 		SM2EncryptedPrivateKey: asn1.BitString{Bytes: encryptedPrivateKey},
 	}
-	return envelopedKey, nil
+	return asn1.Marshal(envelopedKey)
 }
 
 // 解析数字信封
