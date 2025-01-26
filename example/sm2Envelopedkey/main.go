@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/rand"
-	"encoding/asn1"
 	"encoding/hex"
 	"encoding/pem"
 	"log"
@@ -59,17 +58,13 @@ func main() {
 	encKey, _ := generateEncKeyPair()
 	// ASN.1 格式数字信封
 	// 生成数字信封
-	envelopedKey, err := x509.GenerateSM2EnvelopedKey(encKey, sigePub)
+	envelopedData, err := x509.GenerateSM2EnvelopedKey(encKey, sigePub)
 	if err != nil {
 		log.Fatalf("failed to generate enveloped key: %v", err)
 	}
-	asn1Data, err := asn1.Marshal(*envelopedKey)
-	if err != nil {
 
-		log.Fatalf("failed to marshal enveloped key: %v", err)
-	}
 	// 将数字信封序列化为 hex 格式
-	hexData := hex.EncodeToString(asn1Data)
+	hexData := hex.EncodeToString(envelopedData)
 
 	// 解析数字信封
 	decodedData, err := hex.DecodeString(hexData)
