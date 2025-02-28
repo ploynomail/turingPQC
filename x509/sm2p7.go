@@ -94,7 +94,7 @@ func GenerateSM2EnvelopedKey(sm2PrivateKey *sm2.PrivateKey, sm2PublicKey *sm2.Pu
 		return nil, err
 	}
 	// 5. 封装到数字信封中
-	envelopedKey := &SM2EnvelopedKey{
+	envelopedKey := SM2EnvelopedKey{
 		SymAlgID:               pkix.AlgorithmIdentifier{Algorithm: oidSM4ECB},
 		SymEncryptedKey:        encryptedSymmetricKey,
 		SM2PublicKey:           sm2PublicKeyBytes,
