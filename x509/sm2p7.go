@@ -50,8 +50,8 @@ func decryptWithSymmetricKey(key []byte, ciphertext []byte) ([]byte, error) {
 }
 
 // 使用SM2公钥加密对称密钥
-func encryptWithSM2PublicKey(publicKey *sm2.PublicKey, plaintext []byte) ([]byte, error) {
-	ciphertext, err := sm2.Encrypt(publicKey, plaintext, rand.Reader, sm2.C1C3C2)
+func encryptWithSM2PublicKey(publicKey *sm2.PublicKey, plaintext []byte, mode int) ([]byte, error) {
+	ciphertext, err := sm2.Encrypt(publicKey, plaintext, rand.Reader, mode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt with SM2 public key: %v", err)
 	}
@@ -59,8 +59,8 @@ func encryptWithSM2PublicKey(publicKey *sm2.PublicKey, plaintext []byte) ([]byte
 }
 
 // 使用SM2私钥解密对称密钥
-func decryptWithSM2PrivateKey(privateKey *sm2.PrivateKey, ciphertext []byte) ([]byte, error) {
-	plaintext, err := sm2.Decrypt(privateKey, ciphertext, sm2.C1C3C2)
+func decryptWithSM2PrivateKey(privateKey *sm2.PrivateKey, ciphertext []byte, mode int) ([]byte, error) {
+	plaintext, err := sm2.Decrypt(privateKey, ciphertext, mode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt with SM2 private key: %v", err)
 	}
@@ -68,7 +68,7 @@ func decryptWithSM2PrivateKey(privateKey *sm2.PrivateKey, ciphertext []byte) ([]
 }
 
 // 生成数字信封
-func GenerateSM2EnvelopedKey(sm2PrivateKey *sm2.PrivateKey, sm2PublicKey *sm2.PublicKey) ([]byte, error) {
+func GenerateSM2EnvelopedKey(sm2PrivateKey *sm2.PrivateKey, sm2PublicKey *sm2.PublicKey, mode int) ([]byte, error) {
 	// 1. 生成对称密钥
 	symmetricKey, err := generateSymmetricKey()
 	if err != nil {
@@ -83,7 +83,7 @@ func GenerateSM2EnvelopedKey(sm2PrivateKey *sm2.PrivateKey, sm2PublicKey *sm2.Pu
 	}
 
 	// 3. 使用SM2公钥加密对称密钥
-	encryptedSymmetricKey, err := encryptWithSM2PublicKey(sm2PublicKey, symmetricKey)
+	encryptedSymmetricKey, err := encryptWithSM2PublicKey(sm2PublicKey, symmetricKey, mode)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func GenerateSM2EnvelopedKey(sm2PrivateKey *sm2.PrivateKey, sm2PublicKey *sm2.Pu
 }
 
 // 解析数字信封
-func ParseSM2EnvelopedKey(envelopedKeyData []byte, sm2PrivateKey *sm2.PrivateKey) (*sm2.PrivateKey, error) {
+func ParseSM2EnvelopedKey(envelopedKeyData []byte, sm2PrivateKey *sm2.PrivateKey, mode int) (*sm2.PrivateKey, error) {
 	var sm2EnvelopedKey SM2EnvelopedKey
 	_, err := asn1.Unmarshal(envelopedKeyData, &sm2EnvelopedKey)
 	if err != nil {
@@ -112,7 +112,7 @@ func ParseSM2EnvelopedKey(envelopedKeyData []byte, sm2PrivateKey *sm2.PrivateKey
 	}
 
 	// 1. 使用SM2私钥解密对称密钥
-	symmetricKey, err := decryptWithSM2PrivateKey(sm2PrivateKey, sm2EnvelopedKey.SymEncryptedKey)
+	symmetricKey, err := decryptWithSM2PrivateKey(sm2PrivateKey, sm2EnvelopedKey.SymEncryptedKey, sm2.C1C2C3)
 	if err != nil {
 		return nil, err
 	}

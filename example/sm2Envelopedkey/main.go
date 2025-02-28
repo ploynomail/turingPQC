@@ -58,7 +58,7 @@ func main() {
 	encKey, _ := generateEncKeyPair()
 	// ASN.1 格式数字信封
 	// 生成数字信封
-	envelopedData, err := x509.GenerateSM2EnvelopedKey(encKey, sigePub)
+	envelopedData, err := x509.GenerateSM2EnvelopedKey(encKey, sigePub, sm2.C1C2C3)
 	if err != nil {
 		log.Fatalf("failed to generate enveloped key: %v", err)
 	}
@@ -71,7 +71,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to decode hex data: %v", err)
 	}
-	pk, err := x509.ParseSM2EnvelopedKey(decodedData, sigeKey)
+	pk, err := x509.ParseSM2EnvelopedKey(decodedData, sigeKey, sm2.C1C2C3)
 	if err != nil {
 		log.Fatalf("failed to parse enveloped key: %v", err)
 	}
