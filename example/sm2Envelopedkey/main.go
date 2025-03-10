@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/pem"
+	"fmt"
 	"log"
 	"os"
 
@@ -55,23 +56,35 @@ func generateEncKeyPair() (*sm2.PrivateKey, *sm2.PublicKey) {
 
 func main() {
 	sigeKey, sigePub := generateSigeKeyPair()
+	sigeKeyDER, err := x509.MarshalPKCS8PrivateKey(sigeKey)
+	if err != nil {
+		log.Fatalf("failed to marshal private key: %v", err)
+	}
+	sigeKeyPem := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: sigeKeyDER})
+	log.Printf("sigeKey: %s", sigeKeyPem)
 	encKey, _ := generateEncKeyPair()
+	encKeyDER, err := x509.MarshalPKCS8PrivateKey(encKey)
+	if err != nil {
+		log.Fatalf("failed to marshal private key: %v", err)
+	}
+	encKeyPem := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: encKeyDER})
+	log.Printf("encKey: %s", encKeyPem)
 	// ASN.1 格式数字信封
 	// 生成数字信封
-	envelopedData, err := x509.GenerateSM2EnvelopedKey(encKey, sigePub, sm2.C1C2C3)
+	envelopedData, err := x509.GenerateSM2EnvelopedKey(encKey, sigePub, sm2.C1C3C2)
 	if err != nil {
 		log.Fatalf("failed to generate enveloped key: %v", err)
 	}
 
 	// 将数字信封序列化为 hex 格式
 	hexData := hex.EncodeToString(envelopedData)
-
+	fmt.Println(hexData)
 	// 解析数字信封
 	decodedData, err := hex.DecodeString(hexData)
 	if err != nil {
 		log.Fatalf("failed to decode hex data: %v", err)
 	}
-	pk, err := x509.ParseSM2EnvelopedKey(decodedData, sigeKey, sm2.C1C2C3)
+	pk, err := x509.ParseSM2EnvelopedKey(decodedData, sigeKey, sm2.C1C3C2)
 	if err != nil {
 		log.Fatalf("failed to parse enveloped key: %v", err)
 	}
